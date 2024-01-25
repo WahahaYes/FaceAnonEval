@@ -5,10 +5,18 @@ from typing import Iterator
 import cv2
 from tqdm import tqdm
 
-from src.anonymization.blur_image_operation import BlurImageOperation
-from src.anonymization.privacy_operation import PrivacyOperation
+from src.anonymization.blur_image_operation import (
+    BlurImageOperation,
+)
+from src.anonymization.privacy_operation import (
+    PrivacyOperation,
+)
 from src.anonymization.test_operation import TestOperation
-from src.face_dataset import FaceDataset, dataset_iterator
+from src.dataset.dataset_identity_lookup import (
+    CelebAIdentityLookup,
+    DatasetIdentityLookup,
+)
+from src.dataset.face_dataset import FaceDataset, dataset_iterator
 from src.utils import img_tensor_to_cv2
 
 if __name__ == "__main__":
@@ -19,16 +27,26 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "-d", "--dataset", choices=["CelebA"], default="CelebA", type=str
+        "--dataset",
+        choices=["CelebA"],
+        default="CelebA",
+        type=str,
+        help="The benchmark dataset to process, which should be placed into the 'Datasets' folder.",
     )
     parser.add_argument(
-        "-p",
         "--privacy_operation",
-        choices=["Test", "BlurImage"],
-        default="Test",
+        choices=["test", "blur_image"],
+        default="test",
         type=str,
+        help="The privacy operation to apply to the selected dataset.",
     )
-    parser.add_argument("--batch_size", default=1, type=int)
+    parser.add_argument(
+        "--batch_size",
+        default=4,
+        type=int,
+        help="The size of each batch when processing each dataset.  "
+        "Note that some privacy operations are intensive, so batch size should be adjusted to match.",
+    )
 
     # Add argument to control where the output files should go
     parser.add_argument(
@@ -36,29 +54,38 @@ if __name__ == "__main__":
     )  # Default path is "./Processed Datasets"
 
     # some arguments will only be used for certain anonymizations, that's fine
-    parser.add_argument("--blur_kernel", default=5, type=float)
+    parser.add_argument(
+        "--blur_kernel",
+        default=5,
+        type=float,
+        help="For blurring operations, the size of the blur kernel.",
+    )
     args = parser.parse_args()
 
     # TODO: Add argument to control where the output files should go. Default ./Processed Datasets
 
     # create an iterator over all images in our dataset
     d_iter: Iterator | None = None
+    face_dataset: FaceDataset | None = None
+    dataset_identity_lookup: DatasetIdentityLookup | None = None
     match args.dataset:
         case "CelebA":
-            d_iter = dataset_iterator(
-                FaceDataset("Datasets/CelebA", filetype=".jpg"),
-                batch_size=args.batch_size,
+            face_dataset = FaceDataset("Datasets//CelebA", filetype=".jpg")
+            dataset_identity_lookup = CelebAIdentityLookup(
+                "Datasets//CelebA//Anno//identity_CelebA.txt"
             )
         case _:
             raise Exception(f"Invalid Dataset argument ({args.dataset})")
+
+    d_iter: Iterator = dataset_iterator(face_dataset, batch_size=args.batch_size)
     print(f"Processing {args.dataset}.")
 
     # assign our anonymization method
     a_method: PrivacyOperation | None = None
     match args.privacy_operation:
-        case "Test":
+        case "test":
             a_method = TestOperation()
-        case "BlurImage":
+        case "blur_image":
             a_method = BlurImageOperation(kernel=args.blur_kernel)
         case _:
             raise Exception(

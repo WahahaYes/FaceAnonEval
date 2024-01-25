@@ -53,17 +53,7 @@ class Evaluator:
         self.detect_model.prepare(ctx_id=0, det_size=(640, 640), input_size=(224, 224))
         self.recog_model.prepare(ctx_id=0)
 
-        """
-        TODO: 
-        Based on the parameters chosen, we should store the embeddings
-        that we generate into pickle files.  Then, when loading later
-        evaluations, we can check if we have cached the faces for this 
-        dataset.  
-
-        This would be super useful for the real faces, we do not want to 
-        repeatedly process all of CelebA every time we compare to another 
-        dataset.
-        """
+        # We store the embeddings to be reused later, for efficiency
         if self.real_embeddings is None:
             print(
                 f"Generating embeddings on dataset of real faces ({real_dataset_path})."
@@ -101,8 +91,8 @@ class Evaluator:
             """
             Insightface's recognition model supports batched inputs but the
             face detection model does not.  To optimize the code a bit, here
-            I interface really heavily with their models so that I can
-            preprocess faces then feed in batches.
+            I interface with their models so that I can preprocess faces 
+            then feed in batches.
             """
             # read the image and generate face information.
             imgs = []

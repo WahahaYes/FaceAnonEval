@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import numpy as np
 import torch
 
@@ -16,12 +14,6 @@ def img_tensor_to_cv2(img: torch.tensor) -> np.ndarray:
     img = img.transpose(1, 2, 0).astype(np.uint8)
 
     return img
-
-
-# a shorthand way to pull the identity label out of our common file path
-def get_identity_label(f_path: str) -> str:
-    p = Path(f_path)  # .../person1/001.jpg
-    return str(p.parent)  # person1
 
 
 # loads a list in chunks

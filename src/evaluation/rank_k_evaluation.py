@@ -1,22 +1,21 @@
-import os
-import sys
+import ntpath
 
 import numpy as np
 from tqdm import tqdm
 
-sys.path.append(os.getcwd())
-
+from src.dataset.dataset_identity_lookup import DatasetIdentityLookup
 from src.evaluation.evaluator import Evaluator
-from src.utils import get_identity_label
 
 
-def rank_k_evaluation(evaluator: Evaluator, k: int = 1):
-    hits_misses = []  # store a list of hits and misses
+def rank_k_evaluation(
+    evaluator: Evaluator, identity_lookup: DatasetIdentityLookup, k: int = 1
+):
+    hits_and_misses = []  # store a list of hits and misses
 
     # Iterate through every face of the query dataset
     print("Iterating over query dataset.")
     for face_path in tqdm(evaluator.real_paths):
-        real_label = get_identity_label(face_path)
+        real_label = identity_lookup.lookup(face_path)
         if face_path not in evaluator.real_embeddings:
             continue
         embedding = evaluator.real_embeddings[face_path]
@@ -28,24 +27,22 @@ def rank_k_evaluation(evaluator: Evaluator, k: int = 1):
         )
 
         # check for hits within our range of k
-        for i in range(k):
+        i, k_curr = 0, k
+        while i < k_curr:
             anon_path, anon_embedding = sorted_vals[i]
-            anon_label = get_identity_label(anon_path)
+            anon_label = identity_lookup.lookup(anon_path)
 
             if real_label == anon_label:
-                hits_misses.append(1)
-                break
-            elif i == k - 1:
+                # Additionally check that the same image is not being compared
+                # If we get to this point, we're essentially saying does "/1/1.jpg" == "/1/1.jpg?"
+                if ntpath.basename(anon_path) == ntpath.basename(face_path):
+                    # effectively skip this image
+                    k_curr += 1
+                else:
+                    hits_and_misses.append(1)
+                    break
+            elif i == k_curr - 1:
                 # If we get to this point, we did not match any in the set of k
-                hits_misses.append(0)
-    return hits_misses
-
-
-if __name__ == "__main__":
-    evaluator = Evaluator("Datasets//CelebA", "Datasets//CelebA_tiny", batch_size=4)
-    hits_misses = rank_k_evaluation(evaluator, 1)
-
-    print(f"# of comparisons: {len(hits_misses)}")
-    print(f"# of hits: {np.sum(hits_misses)}")
-    print(f"# of misses: {len(hits_misses) - np.sum(hits_misses)}")
-    print(f"Average: {np.mean(hits_misses):.2%}")
+                hits_and_misses.append(0)
+            i += 1
+    return hits_and_misses
