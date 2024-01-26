@@ -1,6 +1,6 @@
 import argparse
+import os
 from typing import Iterator
-
 from tqdm import tqdm
 
 from src.anonymization.blur_image_operation import BlurImageOperation
@@ -27,9 +27,16 @@ if __name__ == "__main__":
     )
     parser.add_argument("--batch_size", default=1, type=int)
 
+    # Add argument to control where the output files should go
+    parser.add_argument(
+        "--output_path", default="./Processed Datasets", type=str
+    )  # Default path is "./Processed Datasets"
+
     # some arguments will only be used for certain anonymizations, that's fine
     parser.add_argument("--blur_kernel", default=5, type=float)
     args = parser.parse_args()
+
+    # TODO: Add argument to control where the output files should go. Default ./Processed Datasets
 
     # create an iterator over all images in our dataset
     d_iter: Iterator | None = None
@@ -51,24 +58,26 @@ if __name__ == "__main__":
         case "BlurImage":
             a_method = BlurImageOperation(kernel=args.blur_kernel)
         case _:
-            raise Exception(
+            raise Exception (
                 f"Invalid privacy operation argument ({args.privacy_operation})."
             )
     print(f"Applying {args.privacy_operation} operation.")
 
     # iterate over the dataset and apply the privacy mechanism
+    output_folder = os.path.join(args.output_path, f"{args.dataset}_{args.privacy_operation}")
+    os.makedirs(output_folder, exist_ok=True)  # Create the output folder if it doesn't exist
+
     for img, img_path in tqdm(d_iter):
         private_img = a_method.process(img)
 
-        """
-        TODO: [Sean] write code to write the private images into a
-        copy dataset named <dataset>_<privacy_operation>
+        # Get the relative path from the original dataset folder
+        relative_path = os.path.relpath(img_path, start="Datasets")
 
-        Keep the file structure the same (while CelebA has all images 
-        in one folder, other datasets like VGGFace2 do not)
+        # Construct the output path for the private image
+        output_img_path = os.path.join(output_folder, relative_path)
 
-        We want to put them in "Processed Datasets", so that we can
-        keep the "Datasets" folder somewhat protected plus make the
-        assumption later that "Datasets" are real, "Processed
-        Datasets" are anonymized
-        """
+        # Ensure the directory structure exists
+        os.makedirs(os.path.dirname(output_img_path), exist_ok=True)
+
+        # Write the private image to the output path
+        private_img.save(output_img_path)
