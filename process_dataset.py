@@ -5,18 +5,18 @@ from typing import Iterator
 import cv2
 from tqdm import tqdm
 
-from src.anonymization.blur_image_operation import (
-    BlurImageOperation,
-)
-from src.anonymization.privacy_operation import (
-    PrivacyOperation,
-)
-from src.anonymization.test_operation import TestOperation
 from src.dataset.dataset_identity_lookup import (
     CelebAIdentityLookup,
     DatasetIdentityLookup,
 )
 from src.dataset.face_dataset import FaceDataset, dataset_iterator
+from src.privacy_mechanisms.blur_image_mechanism import (
+    BlurImageMechanism,
+)
+from src.privacy_mechanisms.privacy_mechanism import (
+    PrivacyMechanism,
+)
+from src.privacy_mechanisms.test_mechanism import TestMechanism
 from src.utils import img_tensor_to_cv2
 
 if __name__ == "__main__":
@@ -81,12 +81,12 @@ if __name__ == "__main__":
     print(f"Processing {args.dataset}.")
 
     # assign our anonymization method
-    a_method: PrivacyOperation | None = None
+    a_method: PrivacyMechanism | None = None
     match args.privacy_operation:
         case "test":
-            a_method = TestOperation()
+            a_method = TestMechanism()
         case "blur_image":
-            a_method = BlurImageOperation(kernel=args.blur_kernel)
+            a_method = BlurImageMechanism(kernel=args.blur_kernel)
         case _:
             raise Exception(
                 f"Invalid privacy operation argument ({args.privacy_operation})."

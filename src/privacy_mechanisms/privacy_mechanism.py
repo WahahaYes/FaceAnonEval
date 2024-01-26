@@ -4,7 +4,7 @@ import torch
 
 
 # Abstract class for anonymization methods
-class PrivacyOperation(ABC):
+class PrivacyMechanism(ABC):
     def __init__(self) -> None:
         pass
 

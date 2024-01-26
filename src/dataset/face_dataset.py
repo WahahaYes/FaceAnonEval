@@ -12,11 +12,7 @@ class FaceDataset(Dataset):
         self.img_paths = []
         self.transform = transform
         if self.transform is None:
-            self.transform = transforms.Compose(
-                [
-                    transforms.ToTensor(),
-                ]
-            )
+            self.transform = transforms.ToTensor()
 
         # This will search any file hierarchy and return all paths ending in <filetype>
         for file in glob.glob(f"{dir}//**//*{filetype}", recursive=True):
@@ -30,7 +26,7 @@ class FaceDataset(Dataset):
 
         # read the image (note that opencv returns a uint8 image [0-255] in BGR channels)
         img = cv2.imread(img_path)
-        # our transform will convert to CxWxH tensor in [0, 1]
+        # our transform will convert to CxWxH tensor in [0, 1] range
         img = self.transform(img)
 
         return img, img_path

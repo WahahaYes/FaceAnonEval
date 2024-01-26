@@ -16,7 +16,7 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--real_dataset",
-        # choices=["CelebA"],
+        choices=["CelebA"],
         default="CelebA",
         type=str,
         help="The benchmark dataset to process, which should be placed into the 'Datasets' folder.",
@@ -68,9 +68,7 @@ if __name__ == "__main__":
     real_dataset_path = f"Datasets//{args.real_dataset}"
     if args.anonymized_dataset is None:
         # TODO: MAKE THIS CONSISTENT WITH WHATERVER NAMING CONVENTION WE DO
-        anon_dataset_path = (
-            f"Anonymized Datasets//{args.privacy_operation}"
-        )
+        anon_dataset_path = f"Anonymized Datasets//{args.privacy_operation}"
     else:
         anon_dataset_path = f"Anonymized Datasets//{args.anonymized_dataset}"
 
@@ -78,7 +76,7 @@ if __name__ == "__main__":
     evaluator = Evaluator(
         real_dataset_path=real_dataset_path,
         anon_dataset_path=anon_dataset_path,
-        batch_size=4,
+        batch_size=args.batch_size,
         overwrite_embeddings=args.overwrite_embeddings,
     )
 
@@ -86,9 +84,7 @@ if __name__ == "__main__":
     hits_and_misses: list | None = None
     match args.evaluation_method:
         case "rank_k":
-            hits_and_misses = rank_k_evaluation(
-                evaluator=evaluator, k=args.k
-            )
+            hits_and_misses = rank_k_evaluation(evaluator=evaluator, k=args.k)
         case _:
             raise Exception(
                 f"Invalid evaluation method argument ({args.evaluation_method})."
@@ -96,7 +92,5 @@ if __name__ == "__main__":
 
     print(f"# of comparisons: {len(hits_and_misses)}")
     print(f"# of hits: {np.sum(hits_and_misses)}")
-    print(
-        f"# of misses: {len(hits_and_misses) - np.sum(hits_and_misses)}"
-    )
+    print(f"# of misses: {len(hits_and_misses) - np.sum(hits_and_misses)}")
     print(f"Average: {np.mean(hits_and_misses):.2%}")

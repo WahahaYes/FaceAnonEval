@@ -4,14 +4,14 @@ import pickle
 
 import cv2
 
-# NOTE: I couldn't install with Conda, installing with Pip requires Visual C++ 14.0 or greater.
+# NOTE: Windows users can not install insightface with Conda, installing with Pip requires Visual C++ 14.0 or greater.
 import insightface
 import onnxruntime
 from tqdm import tqdm
 
 from src.utils import chunk_list
 
-# TODO: Look into this some more, onnxruntime is complaining a lot but seems to be working fine.
+# TODO: Look into this some more, onnxruntime outputs warnings but seems to be working fine.
 onnxruntime.set_default_logger_severity(3)
 
 
@@ -21,7 +21,7 @@ class Evaluator:
         self,
         real_dataset_path: str,
         anon_dataset_path: str,
-        batch_size: int = 32,
+        batch_size: int = 16,
         file_extension=".jpg",
         overwrite_embeddings=False,
     ):
@@ -43,14 +43,16 @@ class Evaluator:
 
         print("Loading face detection model.")
         self.detect_model = insightface.model_zoo.get_model(
-            os.path.expanduser("~//.insightface//models//buffalo_l//det_10g.onnx")
+            os.path.expanduser("~//.insightface//models//buffalo_l//det_10g.onnx"),
+            download=True,
         )
         print("Loading facial recognition model.")
         # The recognition model (Arcface with Resnet50 backbone), allows us to batch inputs
         self.recog_model = insightface.model_zoo.get_model(
-            os.path.expanduser("~//.insightface//models//buffalo_l//w600k_r50.onnx")
+            os.path.expanduser("~//.insightface//models//buffalo_l//w600k_r50.onnx"),
+            download=True,
         )
-        self.detect_model.prepare(ctx_id=0, det_size=(640, 640), input_size=(224, 224))
+        self.detect_model.prepare(ctx_id=0, det_size=(640, 640), input_size=(640, 640))
         self.recog_model.prepare(ctx_id=0)
 
         # We store the embeddings to be reused later, for efficiency
