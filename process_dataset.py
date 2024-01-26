@@ -5,10 +5,8 @@ from typing import Iterator
 import cv2
 from tqdm import tqdm
 
-from src.dataset.dataset_identity_lookup import (
-    CelebAIdentityLookup,
-    DatasetIdentityLookup,
-)
+from src.dataset.celeba_identity_lookup import CelebAIdentityLookup
+from src.dataset.dataset_identity_lookup import DatasetIdentityLookup
 from src.dataset.face_dataset import FaceDataset, dataset_iterator
 from src.privacy_mechanisms.blur_image_mechanism import (
     BlurImageMechanism,
@@ -50,7 +48,7 @@ if __name__ == "__main__":
 
     # Add argument to control where the output files should go
     parser.add_argument(
-        "--output_path", default="./Processed Datasets", type=str
+        "--output_path", default="./Anonymized Datasets", type=str
     )  # Default path is "./Processed Datasets"
 
     # some arguments will only be used for certain anonymizations, that's fine
