@@ -1,14 +1,14 @@
 import cv2
 import torch
 
-from src.anonymization.privacy_operation import PrivacyOperation
+from src.privacy_mechanisms.privacy_mechanism import PrivacyMechanism
 from src.utils import img_tensor_to_cv2
 
 
-# Simple anonymization method which blurs the whole image according to a kernel size
-class TestOperation(PrivacyOperation):
+# Test mechanism shows the first image in each batch.
+class TestMechanism(PrivacyMechanism):
     def __init__(self) -> None:
-        super(TestOperation, self).__init__()
+        super(TestMechanism, self).__init__()
 
     def process(self, img: torch.tensor) -> torch.tensor:
         # convert the first image in batch to cv2

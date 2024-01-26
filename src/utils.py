@@ -14,3 +14,10 @@ def img_tensor_to_cv2(img: torch.tensor) -> np.ndarray:
     img = img.transpose(1, 2, 0).astype(np.uint8)
 
     return img
+
+
+# loads a list in chunks
+def chunk_list(data, chunksize):
+    for i in range(0, len(data), chunksize):
+        end_step = min(i + chunksize, len(data) - 1)
+        yield data[i:end_step]
