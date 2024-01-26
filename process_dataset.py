@@ -1,12 +1,15 @@
 import argparse
 import os
 from typing import Iterator
+
+import cv2
 from tqdm import tqdm
 
 from src.anonymization.blur_image_operation import BlurImageOperation
 from src.anonymization.privacy_operation import PrivacyOperation
 from src.anonymization.test_operation import TestOperation
 from src.face_dataset import FaceDataset, dataset_iterator
+from src.utils import img_tensor_to_cv2
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -58,26 +61,35 @@ if __name__ == "__main__":
         case "BlurImage":
             a_method = BlurImageOperation(kernel=args.blur_kernel)
         case _:
-            raise Exception (
+            raise Exception(
                 f"Invalid privacy operation argument ({args.privacy_operation})."
             )
     print(f"Applying {args.privacy_operation} operation.")
 
     # iterate over the dataset and apply the privacy mechanism
-    output_folder = os.path.join(args.output_path, f"{args.dataset}_{args.privacy_operation}")
-    os.makedirs(output_folder, exist_ok=True)  # Create the output folder if it doesn't exist
+    output_folder = os.path.join(
+        args.output_path, f"{args.dataset}_{args.privacy_operation}"
+    )
+    os.makedirs(
+        output_folder, exist_ok=True
+    )  # Create the output folder if it doesn't exist
 
-    for img, img_path in tqdm(d_iter):
-        private_img = a_method.process(img)
+    for imgs, img_paths in tqdm(d_iter):
+        private_imgs = a_method.process(imgs)
+        for i in range(len(private_imgs)):
+            img = imgs[i]
+            img_path = img_paths[i]
+            private_img = private_imgs[i]
 
-        # Get the relative path from the original dataset folder
-        relative_path = os.path.relpath(img_path, start="Datasets")
+            # Get the relative path from the original dataset folder
+            relative_path = os.path.relpath(img_path, start="Datasets")
 
-        # Construct the output path for the private image
-        output_img_path = os.path.join(output_folder, relative_path)
+            # Construct the output path for the private image
+            output_img_path = os.path.join(output_folder, relative_path)
 
-        # Ensure the directory structure exists
-        os.makedirs(os.path.dirname(output_img_path), exist_ok=True)
+            # Ensure the directory structure exists
+            os.makedirs(os.path.dirname(output_img_path), exist_ok=True)
 
-        # Write the private image to the output path
-        private_img.save(output_img_path)
+            # Write the private image to the output path
+            private_img_cv2 = img_tensor_to_cv2(private_img)
+            cv2.imwrite(output_img_path, private_img_cv2)
