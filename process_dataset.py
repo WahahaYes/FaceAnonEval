@@ -1,20 +1,13 @@
 import argparse
 import os
-from typing import Iterator
 
 import cv2
 from tqdm import tqdm
 
-from src.dataset.celeba_identity_lookup import CelebAIdentityLookup
-from src.dataset.dataset_identity_lookup import DatasetIdentityLookup
-from src.dataset.face_dataset import FaceDataset, dataset_iterator
-from src.privacy_mechanisms.blur_image_mechanism import (
-    BlurImageMechanism,
-)
+from src.parsing import parse_dataset_argument, parse_privacy_mechanism
 from src.privacy_mechanisms.privacy_mechanism import (
     PrivacyMechanism,
 )
-from src.privacy_mechanisms.test_mechanism import TestMechanism
 from src.utils import img_tensor_to_cv2
 
 if __name__ == "__main__":
@@ -32,11 +25,11 @@ if __name__ == "__main__":
         help="The benchmark dataset to process, which should be placed into the 'Datasets' folder.",
     )
     parser.add_argument(
-        "--privacy_operation",
+        "--privacy_mechanism",
         choices=["test", "blur_image"],
         default="test",
         type=str,
-        help="The privacy operation to apply to the selected dataset.",
+        help="The privacy mechanism to apply to the selected dataset.",
     )
     parser.add_argument(
         "--batch_size",
@@ -47,9 +40,7 @@ if __name__ == "__main__":
     )
 
     # Add argument to control where the output files should go
-    parser.add_argument(
-        "--output_path", default="./Anonymized Datasets", type=str
-    )  # Default path is "./Processed Datasets"
+    parser.add_argument("--output_path", default="./Anonymized Datasets", type=str)
 
     # some arguments will only be used for certain anonymizations, that's fine
     parser.add_argument(
@@ -60,54 +51,31 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    # TODO: Add argument to control where the output files should go. Default ./Processed Datasets
-
     # create an iterator over all images in our dataset
-    d_iter: Iterator | None = None
-    face_dataset: FaceDataset | None = None
-    dataset_identity_lookup: DatasetIdentityLookup | None = None
-    match args.dataset:
-        case "CelebA":
-            face_dataset = FaceDataset("Datasets//CelebA", filetype=".jpg")
-            dataset_identity_lookup = CelebAIdentityLookup(
-                "Datasets//CelebA//Anno//identity_CelebA.txt"
-            )
-        case _:
-            raise Exception(f"Invalid Dataset argument ({args.dataset})")
-
-    d_iter: Iterator = dataset_iterator(face_dataset, batch_size=args.batch_size)
+    d_iter, face_dataset, dataset_identity_lookup = parse_dataset_argument(args)
     print(f"Processing {args.dataset}.")
 
     # assign our anonymization method
-    a_method: PrivacyMechanism | None = None
-    match args.privacy_operation:
-        case "test":
-            a_method = TestMechanism()
-        case "blur_image":
-            a_method = BlurImageMechanism(kernel=args.blur_kernel)
-        case _:
-            raise Exception(
-                f"Invalid privacy operation argument ({args.privacy_operation})."
-            )
-    print(f"Applying {args.privacy_operation} operation.")
+    p_mech_object: PrivacyMechanism = parse_privacy_mechanism(args)
+    print(f"Applying {args.privacy_mechanism} operation.")
+
+    output_folder = os.path.join(
+        args.output_path, f"{args.dataset}_{p_mech_object.get_suffix()}"
+    )
+    # Create the output folder if it doesn't exist
+    os.makedirs(output_folder, exist_ok=True)
 
     # iterate over the dataset and apply the privacy mechanism
-    output_folder = os.path.join(
-        args.output_path, f"{args.dataset}_{args.privacy_operation}"
-    )
-    os.makedirs(
-        output_folder, exist_ok=True
-    )  # Create the output folder if it doesn't exist
-
     for imgs, img_paths in tqdm(d_iter):
-        private_imgs = a_method.process(imgs)
+        private_imgs = p_mech_object.process(imgs)
+        # unwind the batch that was processed
         for i in range(len(private_imgs)):
             img = imgs[i]
             img_path = img_paths[i]
             private_img = private_imgs[i]
 
             # Get the relative path from the original dataset folder
-            relative_path = os.path.relpath(img_path, start="Datasets")
+            relative_path = os.path.relpath(img_path, start=face_dataset.dir)
 
             # Construct the output path for the private image
             output_img_path = os.path.join(output_folder, relative_path)

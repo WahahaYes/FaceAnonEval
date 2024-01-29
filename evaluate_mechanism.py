@@ -6,6 +6,8 @@ from src.evaluation.evaluator import Evaluator
 from src.evaluation.rank_k_evaluation import (
     rank_k_evaluation,
 )
+from src.parsing import parse_privacy_mechanism
+from src.privacy_mechanisms.privacy_mechanism import PrivacyMechanism
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -15,7 +17,7 @@ if __name__ == "__main__":
     )
 
     parser.add_argument(
-        "--real_dataset",
+        "--dataset",
         choices=["CelebA"],
         default="CelebA",
         type=str,
@@ -30,12 +32,23 @@ if __name__ == "__main__":
         "not explicitly passed, the dataset will be found based the 'privacy_operation' parameter.",
     )
     parser.add_argument(
-        "--privacy_operation",
+        "--privacy_mechanism",
         choices=["test", "blur_image"],
         default="test",
         type=str,
         help="The privacy operation to compare against.",
     )
+    # --------------------------------------------------------------------------
+    # privacy mechanism-specific arguments
+    parser.add_argument(
+        "--blur_kernel",
+        default=5,
+        type=float,
+        help="For blurring operations, the size of the blur kernel.",
+    )
+
+    # --------------------------------------------------------------------------
+
     parser.add_argument(
         "--evaluation_method",
         choices=["rank_k"],
@@ -43,12 +56,16 @@ if __name__ == "__main__":
         type=str,
         help="The evaluation methodology to use.  Some methods may rely on other arguments as hyperparameters.",
     )
+    # --------------------------------------------------------------------------
+    # evaluation method-specific arguments
     parser.add_argument(
         "--k",
         default=1,
         type=int,
         help="Choice of k in rank k identity matching.",
     )
+
+    # --------------------------------------------------------------------------
     parser.add_argument(
         "--batch_size",
         default=1,
@@ -65,10 +82,12 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Determine dataset paths based on the passed parameters.
-    real_dataset_path = f"Datasets//{args.real_dataset}"
+    real_dataset_path = f"Datasets//{args.dataset}"
     if args.anonymized_dataset is None:
-        # TODO: MAKE THIS CONSISTENT WITH WHATERVER NAMING CONVENTION WE DO
-        anon_dataset_path = f"Anonymized Datasets//{args.privacy_operation}"
+        p_mech_object: PrivacyMechanism = parse_privacy_mechanism(args)
+        anon_dataset_path = (
+            f"Anonymized Datasets//{args.dataset}_{p_mech_object.get_suffix()}"
+        )
     else:
         anon_dataset_path = f"Anonymized Datasets//{args.anonymized_dataset}"
 

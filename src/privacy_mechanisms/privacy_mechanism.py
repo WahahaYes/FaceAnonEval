@@ -12,3 +12,8 @@ class PrivacyMechanism(ABC):
     @abstractmethod
     def process(self, img: torch.tensor) -> torch.tensor:
         pass
+
+    # yields the suffix used for naming processed datasets
+    @abstractmethod
+    def get_suffix(self) -> str:
+        pass

@@ -9,13 +9,14 @@ from torchvision import transforms
 class FaceDataset(Dataset):
     def __init__(self, dir: str, filetype: str = ".png", transform=None):
         # We load the paths to all images at initialization
+        self.dir = dir
         self.img_paths = []
         self.transform = transform
         if self.transform is None:
             self.transform = transforms.ToTensor()
 
         # This will search any file hierarchy and return all paths ending in <filetype>
-        for file in glob.glob(f"{dir}//**//*{filetype}", recursive=True):
+        for file in glob.glob(f"{self.dir}//**//*{filetype}", recursive=True):
             self.img_paths.append(file)
 
     def __len__(self):

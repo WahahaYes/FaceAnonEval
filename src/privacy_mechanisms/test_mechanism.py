@@ -19,3 +19,6 @@ class TestMechanism(PrivacyMechanism):
 
         # return the unaltered image tensor
         return img
+
+    def get_suffix(self) -> str:
+        return "test"

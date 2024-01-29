@@ -14,3 +14,6 @@ class BlurImageMechanism(PrivacyMechanism):
     def process(self, img: torch.tensor) -> torch.tensor:
         blur_img = self.transform(img)
         return blur_img
+
+    def get_suffix(self) -> str:
+        return f"blur_image_{self.kernel}"
