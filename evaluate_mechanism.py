@@ -44,7 +44,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--blur_kernel",
         default=5,
-        type=float,
+        type=int,
         help="For blurring operations, the size of the blur kernel.",
     )
 
