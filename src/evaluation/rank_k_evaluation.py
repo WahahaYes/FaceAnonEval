@@ -16,9 +16,10 @@ def rank_k_evaluation(
     print("Iterating over query dataset.")
     for query_path in tqdm(evaluator.anon_paths):
         query_label = identity_lookup.lookup(query_path)
-        if query_path not in evaluator.anon_embeddings:
+        if evaluator.generate_key(query_path) not in evaluator.anon_embeddings:
+            # a face was not embedded
             continue
-        query_embedding = evaluator.anon_embeddings[query_path]
+        query_embedding = evaluator.get_anon_embedding(query_path)
         # find the closest matches in the reference dataset
         # NOTE: we're currently comparing with absolute distance, may consider using cosine similarity
         sorted_vals = sorted(

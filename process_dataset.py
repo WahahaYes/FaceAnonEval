@@ -19,7 +19,7 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--dataset",
-        choices=["CelebA"],
+        choices=["CelebA", "lfw"],
         default="CelebA",
         type=str,
         help="The benchmark dataset to process, which should be placed into the 'Datasets' folder.",
