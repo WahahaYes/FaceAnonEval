@@ -8,5 +8,10 @@ class LFWIdentityLookup(DatasetIdentityLookup):
         pass
 
     def lookup(self, file_path: str):
-        # LFW is simple, the identities are stored in a labeled folder
-        return Path(file_path).parent.stem
+        if "___" in file_path:
+            # in case we are passed an embedding key rather than file path
+            contents = file_path.split("___")
+            return contents[0]
+        else:
+            # LFW is simple, the identities are stored in a labeled folder
+            return Path(file_path).parent.stem

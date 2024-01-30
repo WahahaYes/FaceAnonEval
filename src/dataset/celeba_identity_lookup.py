@@ -20,4 +20,12 @@ class CelebAIdentityLookup(DatasetIdentityLookup):
                 self.identity_dict[file_name] = id_label
 
     def lookup(self, file_path: str):
-        return self.identity_dict[ntpath.basename(file_path)]
+        if "___" in file_path:
+            # in case we are passed an embedding key rather than file path
+            contents = file_path.split("___")
+            id_key = f"{contents[1]}.jpg"
+        else:
+            # else, this is a path to the image (file names are unique in CelebA)
+            id_key = ntpath.basename(file_path)
+
+        return self.identity_dict[id_key]

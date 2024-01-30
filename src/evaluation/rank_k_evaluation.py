@@ -1,5 +1,3 @@
-import ntpath
-
 import numpy as np
 from tqdm import tqdm
 
@@ -15,8 +13,9 @@ def rank_k_evaluation(
     # Iterate through every face of the query dataset
     print("Iterating over query dataset.")
     for query_path in tqdm(evaluator.anon_paths):
+        query_key = evaluator.generate_key(query_path)
         query_label = identity_lookup.lookup(query_path)
-        if evaluator.generate_key(query_path) not in evaluator.anon_embeddings:
+        if query_key not in evaluator.anon_embeddings:
             # a face was not embedded
             continue
         query_embedding = evaluator.get_anon_embedding(query_path)
@@ -28,22 +27,24 @@ def rank_k_evaluation(
         )
 
         # check for hits within our range of k
-        i, k_curr = 0, k
+        i, k_curr, outcome = 0, k, False
         while i < k_curr:
-            real_path, real_embedding = sorted_vals[i]
-            real_label = identity_lookup.lookup(real_path)
+            real_key, real_embedding = sorted_vals[i]
+            real_label = identity_lookup.lookup(real_key)
 
             if real_label == query_label:
                 # Additionally check that the same image is not being compared
                 # If we get to this point, we're essentially saying does "/1/1.jpg" == "/1/1.jpg?"
-                if ntpath.basename(real_path) == ntpath.basename(query_path):
-                    # effectively skip this image
+                if real_key == query_key:
+                    # effectively throw this image out of the set of k
                     k_curr += 1
                 else:
                     hits_and_misses.append(1)
+                    outcome = True
                     break
-            elif i == k_curr - 1:
-                # If we get to this point, we did not match any in the set of k
-                hits_and_misses.append(0)
+
             i += 1
+        if outcome is False:
+            hits_and_misses.append(0)
+
     return hits_and_misses

@@ -107,6 +107,7 @@ class CustomArgumentParser:
             parser.add_argument(
                 "--should_anon_entire_pair",
                 default=False,
+                choices=[True, False],
                 type=bool,
                 help="Flags whether face validation tasks should anonymize BOTH faces being compared, or just anonymize one face and query against a non-anonymized face.",
             )
