@@ -8,7 +8,9 @@ from src.evaluation.evaluator import Evaluator
 
 
 def lfw_validation_evaluation(
-    evaluator: Evaluator, identity_lookup: DatasetIdentityLookup
+    evaluator: Evaluator,
+    identity_lookup: DatasetIdentityLookup,
+    should_anon_entire_pair=False,
 ):
     # (embedding 1, embedding 2, label)
     real_pairs = []
@@ -49,38 +51,57 @@ def lfw_validation_evaluation(
                 )
             except Exception as e:
                 print(f"Warning: could not construct embedding pairs, {e}")
-            # anon pairs contain the combinations of if each face in the pair is anonymized
-            try:
-                anon_pairs.append(
-                    (
-                        evaluator.get_real_embedding(f1_path),
-                        evaluator.get_anon_embedding(f2_path),
-                        label,
+            if should_anon_entire_pair:
+                try:
+                    anon_pairs.append(
+                        (
+                            evaluator.get_anon_embedding(f1_path),
+                            evaluator.get_anon_embedding(f2_path),
+                            label,
+                        )
                     )
-                )
-                anon_pairs.append(
-                    (
-                        evaluator.get_anon_embedding(f1_path),
-                        evaluator.get_real_embedding(f2_path),
-                        label,
+                except Exception as e:
+                    print(f"Warning: could not construct embedding pairs, {e}")
+            else:
+                # anon pairs contain the combinations of if each face in the pair is anonymized
+                try:
+                    anon_pairs.append(
+                        (
+                            evaluator.get_real_embedding(f1_path),
+                            evaluator.get_anon_embedding(f2_path),
+                            label,
+                        )
                     )
-                )
-            except Exception as e:
-                print(f"Warning: could not construct embedding pairs, {e}")
+                    anon_pairs.append(
+                        (
+                            evaluator.get_anon_embedding(f1_path),
+                            evaluator.get_real_embedding(f2_path),
+                            label,
+                        )
+                    )
+                except Exception as e:
+                    print(f"Warning: could not construct embedding pairs, {e}")
 
-    real_distances, real_labels = [], []
-    for pair in real_pairs:
-        real_distances.append(np.mean(np.abs(pair[0] - pair[1])))
-        real_labels.append(pair[2])
+    thresh_distances, thresh_labels = [], []
+    threshold_pairs = anon_pairs if should_anon_entire_pair else real_pairs
+    for pair in threshold_pairs:
+        thresh_distances.append(np.mean(np.abs(pair[0] - pair[1])))
+        thresh_labels.append(pair[2])
 
-    print("Computing the ideal threshold on the real dataset:")
+    if should_anon_entire_pair:
+        print(
+            "(should_anon_entire_pair is enabled, so we fit the threshold onto the anonymized dataset.)\n"
+            "Computing the ideal threshold on the anonymized dataset:"
+        )
+    else:
+        print("Computing the ideal threshold on the real dataset:")
     best_thresh, best_thresh_acc = 0, 0
-    for curr_thresh in np.linspace(0, 2, 100):
+    for curr_thresh in np.linspace(0, 2, 200):
         pred_labels = []
-        for d in real_distances:
+        for d in thresh_distances:
             pred_labels.append(1 if d < curr_thresh else 0)
         curr_thresh_acc = 1 - np.mean(
-            np.abs(np.array(pred_labels) - np.array(real_labels))
+            np.abs(np.array(pred_labels) - np.array(thresh_labels))
         )
 
         if curr_thresh_acc > best_thresh_acc:
