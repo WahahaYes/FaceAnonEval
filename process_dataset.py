@@ -19,7 +19,7 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--dataset",
-        choices=["CelebA"],
+        choices=["CelebA", "lfw"],
         default="CelebA",
         type=str,
         help="The benchmark dataset to process, which should be placed into the 'Datasets' folder.",
@@ -46,7 +46,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--blur_kernel",
         default=5,
-        type=float,
+        type=int,
         help="For blurring operations, the size of the blur kernel.",
     )
     args = parser.parse_args()

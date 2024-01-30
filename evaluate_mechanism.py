@@ -3,10 +3,11 @@ import argparse
 import numpy as np
 
 from src.evaluation.evaluator import Evaluator
+from src.evaluation.lfw_validation_evaluation import lfw_validation_evaluation
 from src.evaluation.rank_k_evaluation import (
     rank_k_evaluation,
 )
-from src.parsing import parse_privacy_mechanism
+from src.parsing import parse_dataset_argument, parse_privacy_mechanism
 from src.privacy_mechanisms.privacy_mechanism import PrivacyMechanism
 
 if __name__ == "__main__":
@@ -18,7 +19,7 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--dataset",
-        choices=["CelebA"],
+        choices=["CelebA", "lfw"],
         default="CelebA",
         type=str,
         help="The benchmark dataset to process, which should be placed into the 'Datasets' folder.",
@@ -43,7 +44,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--blur_kernel",
         default=5,
-        type=float,
+        type=int,
         help="For blurring operations, the size of the blur kernel.",
     )
 
@@ -51,7 +52,7 @@ if __name__ == "__main__":
 
     parser.add_argument(
         "--evaluation_method",
-        choices=["rank_k"],
+        choices=["rank_k", "lfw_validation"],
         default="rank_k",
         type=str,
         help="The evaluation methodology to use.  Some methods may rely on other arguments as hyperparameters.",
@@ -81,6 +82,8 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
+    d_iter, face_dataset, dataset_identity_lookup = parse_dataset_argument(args)
+
     # Determine dataset paths based on the passed parameters.
     real_dataset_path = f"Datasets//{args.dataset}"
     if args.anonymized_dataset is None:
@@ -103,7 +106,13 @@ if __name__ == "__main__":
     hits_and_misses: list | None = None
     match args.evaluation_method:
         case "rank_k":
-            hits_and_misses = rank_k_evaluation(evaluator=evaluator, k=args.k)
+            hits_and_misses = rank_k_evaluation(
+                evaluator=evaluator, identity_lookup=dataset_identity_lookup, k=args.k
+            )
+        case "lfw_validation":
+            hits_and_misses = lfw_validation_evaluation(
+                evaluator=evaluator, identity_lookup=dataset_identity_lookup
+            )
         case _:
             raise Exception(
                 f"Invalid evaluation method argument ({args.evaluation_method})."

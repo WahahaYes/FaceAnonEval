@@ -5,6 +5,7 @@ from typing import Iterator
 from src.dataset.celeba_identity_lookup import CelebAIdentityLookup
 from src.dataset.dataset_identity_lookup import DatasetIdentityLookup
 from src.dataset.face_dataset import FaceDataset, dataset_iterator
+from src.dataset.lfw_identity_lookup import LFWIdentityLookup
 from src.privacy_mechanisms.blur_image_mechanism import BlurImageMechanism
 from src.privacy_mechanisms.privacy_mechanism import PrivacyMechanism
 from src.privacy_mechanisms.test_mechanism import TestMechanism
@@ -21,6 +22,9 @@ def parse_dataset_argument(
             dataset_identity_lookup = CelebAIdentityLookup(
                 "Datasets//CelebA//Anno//identity_CelebA.txt"
             )
+        case "lfw":
+            face_dataset = FaceDataset("Datasets//lfw", filetype=".jpg")
+            dataset_identity_lookup = LFWIdentityLookup()
         case _:
             raise Exception(f"Invalid Dataset argument ({args.dataset})")
 

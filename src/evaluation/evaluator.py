@@ -1,6 +1,7 @@
 import glob
 import os
 import pickle
+from pathlib import Path
 
 import cv2
 
@@ -25,6 +26,8 @@ class Evaluator:
         file_extension=".jpg",
         overwrite_embeddings=False,
     ):
+        self.real_dataset_path = real_dataset_path
+        self.anon_dataset_path = anon_dataset_path
         # First, see if there are cached embeddings for the passed
         # datasets which we can load in.
         self.real_embeddings: dict | None = None
@@ -34,10 +37,10 @@ class Evaluator:
             self.anon_embeddings = self.load_embeddings(anon_dataset_path)
 
         self.real_paths = glob.glob(
-            f"{real_dataset_path}//**//*{file_extension}", recursive=True
+            f"{self.real_dataset_path}//**//*{file_extension}", recursive=True
         )
         self.anon_paths = glob.glob(
-            f"{anon_dataset_path}//**//*{file_extension}", recursive=True
+            f"{self.anon_dataset_path}//**//*{file_extension}", recursive=True
         )
         self.batch_size = batch_size
 
@@ -107,12 +110,26 @@ class Evaluator:
                     aimg = insightface.utils.face_align.norm_crop(img, landmark=kpss[0])
                     imgs.append(aimg)
                     valid_paths.append(f_p)
-                except:
-                    print(f"Warning: Face could not be detected ({f_p}).")
+                except Exception as e:
+                    print(f"Warning: Face could not be detected ({f_p}).\n{e}")
             if len(imgs) > 0:
                 # compute and store the embeddings.
                 embeddings = self.recog_model.get_feat(imgs)
                 for i in range(len(embeddings)):
-                    embed_dict[valid_paths[i]] = embeddings[i]
+                    embed_dict[self.generate_key(valid_paths[i])] = embeddings[i]
 
         return embed_dict
+
+    def generate_key(self, file_path: str):
+        # will the folder + filename suffice?
+        f_path = Path(file_path)
+        # This avoids any issues with operating system file delimiters,
+        # but lets us still use file paths as keys
+        key = f"{f_path.parent.stem}___{f_path.stem}"
+        return key
+
+    def get_real_embedding(self, file_path: str):
+        return self.real_embeddings[self.generate_key(file_path)]
+
+    def get_anon_embedding(self, file_path: str):
+        return self.anon_embeddings[self.generate_key(file_path)]
