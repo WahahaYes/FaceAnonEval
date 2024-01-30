@@ -37,7 +37,9 @@ if __name__ == "__main__":
     match args.evaluation_method:
         case "rank_k":
             hits_and_misses = rank_k_evaluation(
-                evaluator=evaluator, identity_lookup=dataset_identity_lookup, k=args.k
+                evaluator=evaluator,
+                identity_lookup=dataset_identity_lookup,
+                k=args.identity_matching_k,
             )
         case "lfw_validation":
             hits_and_misses = lfw_validation_evaluation(
