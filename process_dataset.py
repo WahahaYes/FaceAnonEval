@@ -1,63 +1,23 @@
-import argparse
 import os
 
 import cv2
 from tqdm import tqdm
 
-from src.parsing import parse_dataset_argument, parse_privacy_mechanism
+from src.argument_parser import CustomArgumentParser
 from src.privacy_mechanisms.privacy_mechanism import (
     PrivacyMechanism,
 )
 from src.utils import img_tensor_to_cv2
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        prog="Process Dataset",
-        description="Processes an input dataset with a given anonymization method, "
-        "producing an anonymized counterpart dataset used for later evaluation.",
-    )
-
-    parser.add_argument(
-        "--dataset",
-        choices=["CelebA", "lfw"],
-        default="CelebA",
-        type=str,
-        help="The benchmark dataset to process, which should be placed into the 'Datasets' folder.",
-    )
-    parser.add_argument(
-        "--privacy_mechanism",
-        choices=["test", "blur_image"],
-        default="test",
-        type=str,
-        help="The privacy mechanism to apply to the selected dataset.",
-    )
-    parser.add_argument(
-        "--batch_size",
-        default=4,
-        type=int,
-        help="The size of each batch when processing each dataset.  "
-        "Note that some privacy operations are intensive, so batch size should be adjusted to match.",
-    )
-
-    # Add argument to control where the output files should go
-    parser.add_argument("--output_path", default="./Anonymized Datasets", type=str)
-
-    # some arguments will only be used for certain anonymizations, that's fine
-    parser.add_argument(
-        "--blur_kernel",
-        default=5,
-        type=int,
-        help="For blurring operations, the size of the blur kernel.",
-    )
+    parser = CustomArgumentParser(mode="process")
     args = parser.parse_args()
 
     # create an iterator over all images in our dataset
-    d_iter, face_dataset, dataset_identity_lookup = parse_dataset_argument(args)
-    print(f"Processing {args.dataset}.")
+    d_iter, face_dataset, dataset_identity_lookup = parser.get_dataset_objects()
 
     # assign our anonymization method
-    p_mech_object: PrivacyMechanism = parse_privacy_mechanism(args)
-    print(f"Applying {args.privacy_mechanism} operation.")
+    p_mech_object: PrivacyMechanism = parser.get_privacy_mech_object()
 
     output_folder = os.path.join(
         args.output_path, f"{args.dataset}_{p_mech_object.get_suffix()}"

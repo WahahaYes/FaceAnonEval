@@ -13,7 +13,7 @@ from tqdm import tqdm
 from src.utils import chunk_list
 
 # TODO: Look into this some more, onnxruntime outputs warnings but seems to be working fine.
-onnxruntime.set_default_logger_severity(3)
+onnxruntime.set_default_logger_severity(4)
 
 
 # An evaluator stores the paths and computes the embeddings of all faces needed for an evaluation.
