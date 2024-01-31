@@ -5,9 +5,10 @@ from src.dataset.celeba_identity_lookup import CelebAIdentityLookup
 from src.dataset.dataset_identity_lookup import DatasetIdentityLookup
 from src.dataset.face_dataset import FaceDataset, dataset_iterator
 from src.dataset.lfw_identity_lookup import LFWIdentityLookup
-from src.privacy_mechanisms.blur_image_mechanism import BlurImageMechanism
+from src.privacy_mechanisms.gaussian_blur_mechanism import GaussianBlurMechanism
 from src.privacy_mechanisms.privacy_mechanism import PrivacyMechanism
 from src.privacy_mechanisms.test_mechanism import TestMechanism
+from src.privacy_mechanisms.uniform_blur_mechanism import UniformBlurMechanism
 
 
 # this class allows us to declare arguments all in one spot, with flags to specify
@@ -48,14 +49,14 @@ class CustomArgumentParser:
         )
         parser.add_argument(
             "--privacy_mechanism",
-            choices=["test", "blur_image"],
-            default="test",
+            choices=["test", "gaussian_blur", "uniform_blur"],
+            default="uniform_blur",
             type=str,
             help="The privacy operation to apply.",
         )
         parser.add_argument(
             "--batch_size",
-            default=8,
+            default=4,
             type=int,
             help="The batch size used by privacy mechanisms and facial recognition networks.",
         )
@@ -65,7 +66,7 @@ class CustomArgumentParser:
             "--blur_kernel",
             default=5,
             type=int,
-            help="For blurring operations, the size of the Gaussian blur kernel.",
+            help="For blurring operations, the size of the blur kernel.",
         )
         # --------------------------------------------------------------------------
         # arguments only relevant for processing script
@@ -148,8 +149,10 @@ class CustomArgumentParser:
         match self.args.privacy_mechanism:
             case "test":
                 p_mech_object = TestMechanism()
-            case "blur_image":
-                p_mech_object = BlurImageMechanism(kernel=self.args.blur_kernel)
+            case "gaussian_blur":
+                p_mech_object = GaussianBlurMechanism(kernel=self.args.blur_kernel)
+            case "uniform_blur":
+                p_mech_object = UniformBlurMechanism(kernel=self.args.blur_kernel)
             case _:
                 raise Exception(
                     f"Invalid privacy operation argument ({self.args.privacy_mechanism})."

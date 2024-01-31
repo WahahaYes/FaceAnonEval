@@ -7,9 +7,9 @@ from src.utils import img_tensor_to_cv2
 
 
 # Simple anonymization method which blurs the whole image according to a kernel size
-class BlurImageMechanism(PrivacyMechanism):
+class GaussianBlurMechanism(PrivacyMechanism):
     def __init__(self, kernel: float = 5) -> None:
-        super(BlurImageMechanism, self).__init__()
+        super(GaussianBlurMechanism, self).__init__()
         self.kernel = kernel
         self.transform = transforms.ToTensor()
 
@@ -25,4 +25,4 @@ class BlurImageMechanism(PrivacyMechanism):
         return img
 
     def get_suffix(self) -> str:
-        return f"blur_image_{self.kernel}"
+        return f"gaussian_blur_{self.kernel}"

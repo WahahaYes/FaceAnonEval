@@ -41,7 +41,7 @@ class Evaluator:
         for file in glob.glob(
             f"{self.real_dataset_path}//**//*{file_extension}", recursive=True
         ):
-            if celeba_test_set_only:
+            if celeba_test_set_only and "CelebA" in self.real_dataset_path:
                 img_index = int(Path(file).stem)
                 if img_index < 182638:  # this is the start of the test split
                     continue
@@ -51,7 +51,7 @@ class Evaluator:
         for file in glob.glob(
             f"{self.anon_dataset_path}//**//*{file_extension}", recursive=True
         ):
-            if celeba_test_set_only:
+            if celeba_test_set_only and "CelebA" in self.real_dataset_path:
                 img_index = int(Path(file).stem)
                 if img_index < 182638:  # this is the start of the test split
                     continue
