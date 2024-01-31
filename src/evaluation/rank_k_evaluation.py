@@ -15,7 +15,13 @@ def rank_k_evaluation(
     pbar = tqdm(evaluator.anon_paths)
     for query_path in pbar:
         query_key = evaluator.generate_key(query_path)
-        query_label = identity_lookup.lookup(query_path)
+
+        # there's a chance that we've blocked part of the dataset (train/ val splits,
+        # images where face was not detected), so skip them here
+        try:
+            query_label = identity_lookup.lookup(query_path)
+        except Exception:
+            continue
         if query_key not in evaluator.anon_embeddings:
             # a face was not embedded
             continue

@@ -3,13 +3,11 @@ import os
 import numpy as np
 from tqdm import tqdm
 
-from src.dataset.dataset_identity_lookup import DatasetIdentityLookup
 from src.evaluation.evaluator import Evaluator
 
 
 def lfw_validation_evaluation(
     evaluator: Evaluator,
-    identity_lookup: DatasetIdentityLookup,
 ):
     # (embedding 1, embedding 2, label)
     real_pairs = []

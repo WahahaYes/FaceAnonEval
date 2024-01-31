@@ -25,6 +25,7 @@ class Evaluator:
         batch_size: int = 16,
         file_extension=".jpg",
         overwrite_embeddings=False,
+        celeba_test_set_only=False,
     ):
         self.real_dataset_path = real_dataset_path
         self.anon_dataset_path = anon_dataset_path
@@ -36,12 +37,26 @@ class Evaluator:
             self.real_embeddings = self.load_embeddings(real_dataset_path)
             self.anon_embeddings = self.load_embeddings(anon_dataset_path)
 
-        self.real_paths = glob.glob(
+        self.real_paths = []
+        for file in glob.glob(
             f"{self.real_dataset_path}//**//*{file_extension}", recursive=True
-        )
-        self.anon_paths = glob.glob(
+        ):
+            if celeba_test_set_only:
+                img_index = int(Path(file).stem)
+                if img_index < 182638:  # this is the start of the test split
+                    continue
+            self.real_paths.append(file)
+
+        self.anon_paths = []
+        for file in glob.glob(
             f"{self.anon_dataset_path}//**//*{file_extension}", recursive=True
-        )
+        ):
+            if celeba_test_set_only:
+                img_index = int(Path(file).stem)
+                if img_index < 182638:  # this is the start of the test split
+                    continue
+            self.anon_paths.append(file)
+
         self.batch_size = batch_size
 
         print("Loading face detection model.")

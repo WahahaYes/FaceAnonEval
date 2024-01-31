@@ -30,6 +30,7 @@ if __name__ == "__main__":
         anon_dataset_path=anon_dataset_path,
         batch_size=args.batch_size,
         overwrite_embeddings=args.overwrite_embeddings,
+        celeba_test_set_only=args.celeba_test_set_only,
     )
 
     # Store the hits and misses of the experiment (NOTE: This will probably have to be generalized when we do novel evaluations)
@@ -42,9 +43,7 @@ if __name__ == "__main__":
                 k=args.identity_matching_k,
             )
         case "lfw_validation":
-            hits_and_misses = lfw_validation_evaluation(
-                evaluator=evaluator, identity_lookup=dataset_identity_lookup
-            )
+            hits_and_misses = lfw_validation_evaluation(evaluator=evaluator)
         case _:
             raise Exception(
                 f"Invalid evaluation method argument ({args.evaluation_method})."

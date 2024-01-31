@@ -1,4 +1,5 @@
 import ntpath
+from pathlib import Path
 
 from tqdm import tqdm
 
@@ -6,7 +7,7 @@ from src.dataset.dataset_identity_lookup import DatasetIdentityLookup
 
 
 class CelebAIdentityLookup(DatasetIdentityLookup):
-    def __init__(self, identity_file_path: str):
+    def __init__(self, identity_file_path: str, test_set_only=False):
         self.identity_dict = dict()
         print("Building an identity lookup table for CelebA.")
         with open(identity_file_path) as txt_file:
@@ -16,6 +17,11 @@ class CelebAIdentityLookup(DatasetIdentityLookup):
                 contents = line.split()
                 file_name = contents[0]
                 id_label = contents[1]
+
+                if test_set_only:
+                    img_index = int(Path(file_name).stem)
+                    if img_index < 182638:  # this is the start of the test split
+                        continue
 
                 self.identity_dict[file_name] = id_label
 

@@ -1,4 +1,5 @@
 import glob
+from pathlib import Path
 from typing import Iterator
 
 import cv2
@@ -7,7 +8,13 @@ from torchvision import transforms
 
 
 class FaceDataset(Dataset):
-    def __init__(self, dir: str, filetype: str = ".png", transform=None):
+    def __init__(
+        self,
+        dir: str,
+        filetype: str = ".png",
+        transform=None,
+        celeba_test_set_only=False,
+    ):
         # We load the paths to all images at initialization
         self.dir = dir
         self.img_paths = []
@@ -17,6 +24,10 @@ class FaceDataset(Dataset):
 
         # This will search any file hierarchy and return all paths ending in <filetype>
         for file in glob.glob(f"{self.dir}//**//*{filetype}", recursive=True):
+            if celeba_test_set_only:
+                img_index = int(Path(file).stem)
+                if img_index < 182638:  # this is the start of the test split
+                    continue
             self.img_paths.append(file)
 
     def __len__(self):

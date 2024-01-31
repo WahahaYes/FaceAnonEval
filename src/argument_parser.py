@@ -40,6 +40,13 @@ class CustomArgumentParser:
             help="The benchmark dataset to process, which should be placed into the 'Datasets' folder.",
         )
         parser.add_argument(
+            "--celeba_test_set_only",
+            default=True,
+            type=bool,
+            choices=[True, False],
+            help="If using CelebA, whether to process only the test set or to process all 200k faces.",
+        )
+        parser.add_argument(
             "--privacy_mechanism",
             choices=["test", "blur_image"],
             default="test",
@@ -104,13 +111,6 @@ class CustomArgumentParser:
                 type=int,
                 help="Choice of k in rank k identity matching.",
             )
-            parser.add_argument(
-                "--should_anon_entire_pair",
-                default=False,
-                choices=[True, False],
-                type=bool,
-                help="Flags whether face validation tasks should anonymize BOTH faces being compared, or just anonymize one face and query against a non-anonymized face.",
-            )
 
         self.args = parser.parse_args()
         print(f"Arguments:\n{self.args}")
@@ -123,9 +123,14 @@ class CustomArgumentParser:
         dataset_identity_lookup: DatasetIdentityLookup | None = None
         match self.args.dataset:
             case "CelebA":
-                face_dataset = FaceDataset("Datasets//CelebA", filetype=".jpg")
+                face_dataset = FaceDataset(
+                    "Datasets//CelebA",
+                    filetype=".jpg",
+                    celeba_test_set_only=self.args.celeba_test_set_only,
+                )
                 dataset_identity_lookup = CelebAIdentityLookup(
-                    "Datasets//CelebA//Anno//identity_CelebA.txt"
+                    identity_file_path="Datasets//CelebA//Anno//identity_CelebA.txt",
+                    test_set_only=self.args.celeba_test_set_only,
                 )
             case "lfw":
                 face_dataset = FaceDataset("Datasets//lfw", filetype=".jpg")
