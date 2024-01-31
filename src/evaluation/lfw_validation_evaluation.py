@@ -10,7 +10,6 @@ from src.evaluation.evaluator import Evaluator
 def lfw_validation_evaluation(
     evaluator: Evaluator,
     identity_lookup: DatasetIdentityLookup,
-    should_anon_entire_pair=False,
 ):
     # (embedding 1, embedding 2, label)
     real_pairs = []
@@ -51,19 +50,9 @@ def lfw_validation_evaluation(
                 )
             except Exception as e:
                 print(f"Warning: could not construct embedding pairs, {e}")
-            if should_anon_entire_pair:
-                try:
-                    anon_pairs.append(
-                        (
-                            evaluator.get_anon_embedding(f1_path),
-                            evaluator.get_anon_embedding(f2_path),
-                            label,
-                        )
-                    )
-                except Exception as e:
-                    print(f"Warning: could not construct embedding pairs, {e}")
-            else:
-                # anon pairs contain the combinations of if each face in the pair is anonymized
+
+            # if it is a positive pair of faces, add to the test set
+            if len(contents) == 3:
                 try:
                     anon_pairs.append(
                         (
@@ -72,45 +61,32 @@ def lfw_validation_evaluation(
                             label,
                         )
                     )
-                    anon_pairs.append(
-                        (
-                            evaluator.get_anon_embedding(f1_path),
-                            evaluator.get_real_embedding(f2_path),
-                            label,
-                        )
-                    )
                 except Exception as e:
                     print(f"Warning: could not construct embedding pairs, {e}")
 
+    # fit the threshold to real pairs of faces
     thresh_distances, thresh_labels = [], []
-    threshold_pairs = anon_pairs if should_anon_entire_pair else real_pairs
-    for pair in threshold_pairs:
+    for pair in real_pairs:
         thresh_distances.append(np.mean(np.abs(pair[0] - pair[1])))
         thresh_labels.append(pair[2])
 
-    if should_anon_entire_pair:
-        print(
-            "(should_anon_entire_pair is enabled, so we fit the threshold onto the anonymized dataset.)\n"
-            "Computing the ideal threshold on the anonymized dataset:"
-        )
-    else:
-        print("Computing the ideal threshold on the real dataset:")
-    best_thresh, best_thresh_acc = 0, 0
+    best_thresh, best_thresh_err = 0, 999
     for curr_thresh in np.linspace(0, 2, 200):
         pred_labels = []
         for d in thresh_distances:
             pred_labels.append(1 if d < curr_thresh else 0)
-        curr_thresh_acc = 1 - np.mean(
+        # we want predictions to equal threshold, so minimize this value
+        curr_thresh_err = np.mean(
             np.abs(np.array(pred_labels) - np.array(thresh_labels))
         )
 
-        if curr_thresh_acc > best_thresh_acc:
+        if curr_thresh_err < best_thresh_err:
             best_thresh = curr_thresh
-            best_thresh_acc = curr_thresh_acc
-            print(f"\t- threshold: {best_thresh:.2f}, accuracy={best_thresh_acc:.2%}")
+            best_thresh_err = curr_thresh_err
+            print(f"\t- threshold: {best_thresh:.2f}, err={best_thresh_err:.2%}")
 
     print(
-        f"Applying threshold of {best_thresh:.2f} ({best_thresh_acc:.2%}) to anonymized face pairs."
+        f"Applying threshold of {best_thresh:.2f} ({best_thresh_err:.2%}) to anonymized face pairs."
     )
 
     for pair in anon_pairs:
@@ -118,6 +94,6 @@ def lfw_validation_evaluation(
         label = pair[2]
 
         pred_label = 1 if distance < best_thresh else 0
-        hits_and_misses.append(1 if pred_label == label else 0)
+        hits_and_misses.append(pred_label)
 
     return hits_and_misses

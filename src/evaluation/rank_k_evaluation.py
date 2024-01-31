@@ -12,7 +12,8 @@ def rank_k_evaluation(
 
     # Iterate through every face of the query dataset
     print("Iterating over query dataset.")
-    for query_path in tqdm(evaluator.anon_paths):
+    pbar = tqdm(evaluator.anon_paths)
+    for query_path in pbar:
         query_key = evaluator.generate_key(query_path)
         query_label = identity_lookup.lookup(query_path)
         if query_key not in evaluator.anon_embeddings:
@@ -30,7 +31,13 @@ def rank_k_evaluation(
         i, k_curr, outcome = 0, k, False
         while i < k_curr:
             real_key, real_embedding = sorted_vals[i]
-            real_label = identity_lookup.lookup(real_key)
+            try:
+                real_label = identity_lookup.lookup(real_key)
+            except Exception as e:
+                print(f"Key {real_key} not found in the identity lookup!\n{e}")
+                i += 1
+                k_curr += 1
+                continue
 
             if real_label == query_label:
                 # Additionally check that the same image is not being compared
@@ -46,5 +53,7 @@ def rank_k_evaluation(
             i += 1
         if outcome is False:
             hits_and_misses.append(0)
+
+        pbar.set_postfix({"current accuracy": np.mean(hits_and_misses)})
 
     return hits_and_misses
