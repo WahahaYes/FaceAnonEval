@@ -18,18 +18,14 @@ def validation_evaluation(
     p_mech_object: PrivacyMechanism,
     args: argparse.Namespace,
 ):
-    print("Creating validation face pairs.")
+    print("================ Validation ================")
     real_pairs, anon_pairs = create_pairs(
         evaluator, identity_lookup, args.num_validation_pairs, args.random_seed
     )
-    print("Computing ideal threshold.")
     ideal_threshold = compute_threshold(real_pairs)
     print(f"Ideal threshold = {ideal_threshold}")
-    print("Predicting on anonymized face pairs.")
     anon_pairs = predict_pairs(anon_pairs, ideal_threshold)
-    print("Calculating results.")
     report_results(anon_pairs, p_mech_object, args)
-    print("Done.")
 
 
 def create_pairs(
@@ -47,7 +43,6 @@ def create_pairs(
     # create the positive pairs of file paths
     real_pairs = []
     anon_pairs = []
-    print("Assembling positive validation pairs...")
 
     pbar = tqdm(total=number_of_pairs, desc="Assembling positive validation pairs.")
     count = 0
@@ -75,6 +70,8 @@ def create_pairs(
             # once the face pair is found, store the embeddings as pairs
             real_pairs.append(
                 (
+                    face1_key,
+                    face2_key,
                     evaluator.real_embeddings[face1_key],
                     evaluator.real_embeddings[face2_key],
                     1,
@@ -84,6 +81,8 @@ def create_pairs(
                 # in anon pairs, the second image is anonymized
                 anon_pairs.append(
                     (
+                        face1_key,
+                        face2_key,
                         evaluator.real_embeddings[face1_key],
                         evaluator.anon_embeddings[face2_key],
                         1,
@@ -115,6 +114,8 @@ def create_pairs(
             # once the face pair is found, store the embeddings as pairs
             real_pairs.append(
                 (
+                    face1_key,
+                    face2_key,
                     evaluator.real_embeddings[face1_key],
                     evaluator.real_embeddings[face2_key],
                     0,
@@ -128,12 +129,12 @@ def compute_threshold(embedding_pairs):
     # embedding_pairs should have an equal mix of positive and negative pairs
     distances, true_labels = [], []
     for pair in embedding_pairs:
-        distances.append(utils.embedding_distance(pair[0], pair[1]))
-        true_labels.append(pair[2])
+        distances.append(utils.embedding_distance(pair[2], pair[3]))
+        true_labels.append(pair[4])
 
     best_thresh, best_err = 0, 999
     pbar = tqdm(
-        np.linspace(0.1, 2, 1000), desc="Fitting threshold to real validation pairs."
+        np.linspace(0.1, 2, 10000), desc="Fitting threshold to real validation pairs."
     )
     for thresh in pbar:
         pred_labels = []
@@ -150,14 +151,14 @@ def compute_threshold(embedding_pairs):
 
 
 def predict_pairs(embedding_pairs, threshold: int):
-    # embedding_pairs is a list containing tuples of (embedding1, embedding2, label)
+    # embedding_pairs is a list containing tuples of (key1, key2, embedding1, embedding2, label)
     # which are compared to see if we predict the same individual or different ones
     pbar = tqdm(
         range(len(embedding_pairs)), desc="Running prediction on validation set."
     )
     for i in pbar:
         pair = embedding_pairs[i]
-        distance = utils.embedding_distance(pair[0], pair[1])
+        distance = utils.embedding_distance(pair[2], pair[3])
         pred_label = 1 if distance < threshold else 0
         pair = pair + (distance, pred_label)
         embedding_pairs[i] = pair
@@ -175,15 +176,20 @@ def report_results(
     for pair in embedding_pairs:
         data.append(
             {
-                "Real Label": pair[2],
-                "Pred Label": pair[4],
-                "Distance": pair[3],
-                "Result": 1 if pair[2] == pair[4] else 0,
+                "key_1": pair[0],
+                "key_2": pair[1],
+                "real_label": pair[4],
+                "pred_label": pair[6],
+                "distance": pair[5],
+                "result": 1 if pair[4] == pair[6] else 0,
             }
         )
     df = pd.DataFrame(data)
-    print(f"Validation result averages (N={len(df)}):")
-    print(df.mean())
+    print("================ Results ================")
+    print(f"Validation accuracy (N={len(df)}):\t{df['result'].mean():.2%}")
+    print(
+        f"Accuracy out of {args.num_validation_pairs}:\t{df['result'].sum() / args.num_validation_pairs:.2%}"
+    )
 
     if args.anonymized_dataset is None:
         out_path = f"Results//{args.evaluation_method}//{args.dataset}_{p_mech_object.get_suffix()}.csv"

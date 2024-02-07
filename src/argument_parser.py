@@ -120,7 +120,7 @@ class CustomArgumentParser:
             )
             parser.add_argument(
                 "--num_validation_pairs",
-                default=100,
+                default=5000,
                 type=int,
                 help="The number of face pairs to build up when creating a validation set.",
             )

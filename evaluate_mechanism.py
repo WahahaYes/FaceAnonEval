@@ -8,6 +8,8 @@ from src.evaluation.validation_evaluation import validation_evaluation
 from src.privacy_mechanisms.privacy_mechanism import PrivacyMechanism
 
 if __name__ == "__main__":
+    print("================ Evaluation ================")
+
     parser = CustomArgumentParser(mode="evaluate")
     args = parser.parse_args()
 
@@ -56,3 +58,4 @@ if __name__ == "__main__":
             raise Exception(
                 f"Invalid evaluation method argument ({args.evaluation_method})."
             )
+    print("================ Done ================")

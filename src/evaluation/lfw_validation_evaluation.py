@@ -17,20 +17,17 @@ def lfw_validation_evaluation(
     p_mech_object: PrivacyMechanism,
     args: argparse.Namespace,
 ):
-    print("Creating validation face pairs.")
+    print("================ LFW Validation ================")
+
     real_pairs, anon_pairs = lfw_create_pairs(evaluator)
-    print("Computing ideal threshold.")
     ideal_threshold = compute_threshold(real_pairs)
     print(f"Ideal threshold = {ideal_threshold}")
-    print("Predicting on anonymized face pairs.")
     anon_pairs = predict_pairs(anon_pairs, ideal_threshold)
-    print("Calculating results.")
     report_results(anon_pairs, p_mech_object, args)
-    print("Done.")
 
 
 def lfw_create_pairs(evaluator: Evaluator):
-    # (embedding 1, embedding 2, label)
+    # (key1, key2, embedding 1, embedding 2, label)
     real_pairs = []
     anon_pairs = []
 
@@ -40,7 +37,7 @@ def lfw_create_pairs(evaluator: Evaluator):
 
     with open("Datasets//lfw//pairs.txt") as pairs_file:
         lines = pairs_file.readlines()  # list containing lines of file
-        for line in tqdm(lines):
+        for line in tqdm(lines, desc="Assembling LFW validation pairs."):
             contents = line.split()
             # we only care about lines with 3 or 4 entries
             if not (len(contents) == 3 or len(contents) == 4):
@@ -60,6 +57,8 @@ def lfw_create_pairs(evaluator: Evaluator):
             try:
                 real_pairs.append(
                     (
+                        evaluator.generate_key(f1_path),
+                        evaluator.generate_key(f2_path),
                         evaluator.get_real_embedding(f1_path),
                         evaluator.get_real_embedding(f2_path),
                         label,
@@ -73,6 +72,8 @@ def lfw_create_pairs(evaluator: Evaluator):
                 try:
                     anon_pairs.append(
                         (
+                            evaluator.generate_key(f1_path),
+                            evaluator.generate_key(f2_path),
                             evaluator.get_real_embedding(f1_path),
                             evaluator.get_anon_embedding(f2_path),
                             label,
