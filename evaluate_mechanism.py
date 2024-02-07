@@ -41,7 +41,8 @@ if __name__ == "__main__":
             rank_k_evaluation(
                 evaluator=evaluator,
                 identity_lookup=dataset_identity_lookup,
-                k=args.identity_matching_k,
+                p_mech_object=p_mech_object,
+                args=args,
             )
         case "validation":
             validation_evaluation(

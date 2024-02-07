@@ -45,7 +45,8 @@ class CustomArgumentParser:
             default=True,
             type=bool,
             choices=[True, False],
-            help="If using CelebA, whether to process only the test set or to process all 200k faces.",
+            help="If using CelebA, whether to process only the test set or to process all 200k faces.  "
+            "Note that evaluating ALL of CelebA can take an extremely long time; therefore, test set-only is recommended.",
         )
         parser.add_argument(
             "--privacy_mechanism",
@@ -112,12 +113,6 @@ class CustomArgumentParser:
             )
             # --------------------------------------------------------------------------
             # arguments applied to specific evaluation methods
-            parser.add_argument(
-                "--identity_matching_k",
-                default=1,
-                type=int,
-                help="Choice of k in rank k identity matching.",
-            )
             parser.add_argument(
                 "--num_validation_pairs",
                 default=5000,
