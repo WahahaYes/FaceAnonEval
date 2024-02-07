@@ -26,6 +26,8 @@ class CelebAIdentityLookup(DatasetIdentityLookup):
                 self.identity_dict[file_name] = id_label
 
     def lookup(self, file_path: str):
+        # our keys look like "000001.jpg" and point to a numerical identity "1001"
+        # multiple keys point to each identity
         if "___" in file_path:
             # in case we are passed an embedding key rather than file path
             contents = file_path.split("___")

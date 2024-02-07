@@ -1,6 +1,7 @@
 import numpy as np
 from tqdm import tqdm
 
+from src import utils
 from src.dataset.dataset_identity_lookup import DatasetIdentityLookup
 from src.evaluation.evaluator import Evaluator
 
@@ -22,15 +23,20 @@ def rank_k_evaluation(
             query_label = identity_lookup.lookup(query_path)
         except Exception:
             continue
-        if query_key not in evaluator.anon_embeddings:
-            # a face was not embedded
+        if query_key not in evaluator.real_embeddings:
+            # the face was not embedded on the benchmark
             continue
+        if query_key not in evaluator.anon_embeddings:
+            # the face was not embedded after being anonymized
+            # NOTE: Should something be done here?
+            continue
+
         query_embedding = evaluator.get_anon_embedding(query_path)
         # find the closest matches in the reference dataset
         # NOTE: we're currently comparing with absolute distance, may consider using cosine similarity
         sorted_vals = sorted(
             evaluator.real_embeddings.items(),
-            key=lambda x: np.mean(np.abs(query_embedding - x[1])),
+            key=lambda x: utils.embedding_distance(query_embedding, x[1]),
         )
 
         # check for hits within our range of k
@@ -62,4 +68,14 @@ def rank_k_evaluation(
 
         pbar.set_postfix({"current accuracy": np.mean(hits_and_misses)})
 
-    return hits_and_misses
+    ideal_number_comparisons = len(evaluator.real_paths)
+    # print results
+    print(f"# of images in evaluation set: {ideal_number_comparisons}")
+    print(f"# of comparisons: {len(hits_and_misses)}")
+    print(f"Detection rate: {len(hits_and_misses) / ideal_number_comparisons:.2f}")
+
+    print(f"# of hits: {np.sum(hits_and_misses)}")
+    print(f"# of misses: {len(hits_and_misses) - np.sum(hits_and_misses)}")
+    print(f"Average (of pairs detected): {np.mean(hits_and_misses):.2%}")
+
+    print(f"Average (total): {np.sum(hits_and_misses) / ideal_number_comparisons:.2%}")

@@ -60,6 +60,12 @@ class CustomArgumentParser:
             type=int,
             help="The batch size used by privacy mechanisms and facial recognition networks.",
         )
+        parser.add_argument(
+            "--random_seed",
+            default=69,
+            type=int,
+            help="Random seed used in stochastic operations for reproducibility.",
+        )
         # --------------------------------------------------------------------------
         # arguments applied to specific privacy mechanisms
         parser.add_argument(
@@ -91,7 +97,7 @@ class CustomArgumentParser:
             )
             parser.add_argument(
                 "--evaluation_method",
-                choices=["rank_k", "lfw_validation"],
+                choices=["rank_k", "validation", "lfw_validation"],
                 default="rank_k",
                 type=str,
                 help="The evaluation methodology to use.  Some methods may rely on other arguments as hyperparameters.",
@@ -111,6 +117,12 @@ class CustomArgumentParser:
                 default=1,
                 type=int,
                 help="Choice of k in rank k identity matching.",
+            )
+            parser.add_argument(
+                "--num_validation_pairs",
+                default=100,
+                type=int,
+                help="The number of face pairs to build up when creating a validation set.",
             )
 
         self.args = parser.parse_args()

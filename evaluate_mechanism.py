@@ -1,11 +1,10 @@
-import numpy as np
-
 from src.argument_parser import CustomArgumentParser
 from src.evaluation.evaluator import Evaluator
 from src.evaluation.lfw_validation_evaluation import lfw_validation_evaluation
 from src.evaluation.rank_k_evaluation import (
     rank_k_evaluation,
 )
+from src.evaluation.validation_evaluation import validation_evaluation
 from src.privacy_mechanisms.privacy_mechanism import PrivacyMechanism
 
 if __name__ == "__main__":
@@ -37,19 +36,23 @@ if __name__ == "__main__":
     hits_and_misses: list | None = None
     match args.evaluation_method:
         case "rank_k":
-            hits_and_misses = rank_k_evaluation(
+            rank_k_evaluation(
                 evaluator=evaluator,
                 identity_lookup=dataset_identity_lookup,
                 k=args.identity_matching_k,
             )
+        case "validation":
+            validation_evaluation(
+                evaluator=evaluator,
+                identity_lookup=dataset_identity_lookup,
+                p_mech_object=p_mech_object,
+                args=args,
+            )
         case "lfw_validation":
-            hits_and_misses = lfw_validation_evaluation(evaluator=evaluator)
+            lfw_validation_evaluation(
+                evaluator=evaluator, p_mech_object=p_mech_object, args=args
+            )
         case _:
             raise Exception(
                 f"Invalid evaluation method argument ({args.evaluation_method})."
             )
-
-    print(f"# of comparisons: {len(hits_and_misses)}")
-    print(f"# of hits: {np.sum(hits_and_misses)}")
-    print(f"# of misses: {len(hits_and_misses) - np.sum(hits_and_misses)}")
-    print(f"Average: {np.mean(hits_and_misses):.2%}")
