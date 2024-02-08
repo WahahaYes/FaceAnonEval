@@ -45,7 +45,8 @@ class CustomArgumentParser:
             default=True,
             type=bool,
             choices=[True, False],
-            help="If using CelebA, whether to process only the test set or to process all 200k faces.",
+            help="If using CelebA, whether to process only the test set or to process all 200k faces.  "
+            "Note that evaluating ALL of CelebA can take an extremely long time; therefore, test set-only is recommended.",
         )
         parser.add_argument(
             "--privacy_mechanism",
@@ -59,6 +60,12 @@ class CustomArgumentParser:
             default=4,
             type=int,
             help="The batch size used by privacy mechanisms and facial recognition networks.",
+        )
+        parser.add_argument(
+            "--random_seed",
+            default=69,
+            type=int,
+            help="Random seed used in stochastic operations for reproducibility.",
         )
         # --------------------------------------------------------------------------
         # arguments applied to specific privacy mechanisms
@@ -91,7 +98,7 @@ class CustomArgumentParser:
             )
             parser.add_argument(
                 "--evaluation_method",
-                choices=["rank_k", "lfw_validation"],
+                choices=["rank_k", "validation", "lfw_validation"],
                 default="rank_k",
                 type=str,
                 help="The evaluation methodology to use.  Some methods may rely on other arguments as hyperparameters.",
@@ -107,10 +114,10 @@ class CustomArgumentParser:
             # --------------------------------------------------------------------------
             # arguments applied to specific evaluation methods
             parser.add_argument(
-                "--identity_matching_k",
-                default=1,
+                "--num_validation_pairs",
+                default=5000,
                 type=int,
-                help="Choice of k in rank k identity matching.",
+                help="The number of face pairs to build up when creating a validation set.",
             )
 
         self.args = parser.parse_args()

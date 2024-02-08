@@ -10,6 +10,7 @@ from src.privacy_mechanisms.privacy_mechanism import (
 from src.utils import img_tensor_to_cv2
 
 if __name__ == "__main__":
+    print("================ Process Dataset ================")
     parser = CustomArgumentParser(mode="process")
     args = parser.parse_args()
 
@@ -26,7 +27,9 @@ if __name__ == "__main__":
     os.makedirs(output_folder, exist_ok=True)
 
     # iterate over the dataset and apply the privacy mechanism
-    for imgs, img_paths in tqdm(d_iter):
+    for imgs, img_paths in tqdm(
+        d_iter, desc=f"Applying {p_mech_object.get_suffix()} to {args.dataset}"
+    ):
         private_imgs = p_mech_object.process(imgs)
         # unwind the batch that was processed
         for i in range(len(private_imgs)):
@@ -46,3 +49,4 @@ if __name__ == "__main__":
             # Write the private image to the output path
             private_img_cv2 = img_tensor_to_cv2(private_img)
             cv2.imwrite(output_img_path, private_img_cv2)
+    print("================ Done ================")

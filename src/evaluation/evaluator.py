@@ -107,6 +107,7 @@ class Evaluator:
         for f_paths in tqdm(
             chunk_list(file_paths, self.batch_size),
             total=len(file_paths) // self.batch_size,
+            desc="Generating embeddings...",
         ):
             """
             Insightface's recognition model supports batched inputs but the
