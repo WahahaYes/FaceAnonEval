@@ -82,6 +82,12 @@ class CustomArgumentParser:
             type=float,
             help="Epsilon value in differential privacy mechanisms.",
         )
+        parser.add_argument(
+            "--pixel_dp_b",
+            default=1,
+            type=int,
+            help="the downsample rate for pixelization in pixel dp.",
+        )
         # --------------------------------------------------------------------------
         # arguments only relevant for processing script
         if self.mode == "process":
@@ -169,7 +175,9 @@ class CustomArgumentParser:
                 p_mech_object = UniformBlurMechanism(kernel=self.args.blur_kernel)
             case "pixel_dp":
                 p_mech_object = PixelDPMechanism(
-                    epsilon=self.args.dp_epsilon, random_seed=self.args.random_seed
+                    epsilon=self.args.dp_epsilon,
+                    b=self.args.pixel_dp_b,
+                    random_seed=self.args.random_seed,
                 )
             case _:
                 raise Exception(
