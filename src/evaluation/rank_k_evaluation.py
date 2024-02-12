@@ -73,6 +73,9 @@ def rank_k_evaluation(
                 break
     df = pd.DataFrame(query_results)
     print("================ Results ================")
+    print(df)
+    print("====")
+    print(df.tail())
     for k in [1, 5, 10, 20, 30, 40, 50]:
         sum_valid = np.sum(df["k"] < k)
         print(f"Accuracy @ k={k:02d}:\t{sum_valid / len(query_results):.2%}")
