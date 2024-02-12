@@ -128,6 +128,9 @@ class Evaluator:
                     valid_paths.append(f_p)
                 except Exception as e:
                     print(f"Warning: Face could not be detected ({f_p}).\n{e}")
+                    # pass the uncropped image along
+                    imgs.append(img)
+                    valid_paths.append(f_p)
             if len(imgs) > 0:
                 # compute and store the embeddings.
                 embeddings = self.recog_model.get_feat(imgs)

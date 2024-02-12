@@ -6,6 +6,7 @@ from src.dataset.dataset_identity_lookup import DatasetIdentityLookup
 from src.dataset.face_dataset import FaceDataset, dataset_iterator
 from src.dataset.lfw_identity_lookup import LFWIdentityLookup
 from src.privacy_mechanisms.gaussian_blur_mechanism import GaussianBlurMechanism
+from src.privacy_mechanisms.pixel_dp_mechanism import PixelDPMechanism
 from src.privacy_mechanisms.privacy_mechanism import PrivacyMechanism
 from src.privacy_mechanisms.test_mechanism import TestMechanism
 from src.privacy_mechanisms.uniform_blur_mechanism import UniformBlurMechanism
@@ -50,7 +51,7 @@ class CustomArgumentParser:
         )
         parser.add_argument(
             "--privacy_mechanism",
-            choices=["test", "gaussian_blur", "uniform_blur"],
+            choices=["test", "gaussian_blur", "uniform_blur", "pixel_dp"],
             default="uniform_blur",
             type=str,
             help="The privacy operation to apply.",
@@ -74,6 +75,12 @@ class CustomArgumentParser:
             default=5,
             type=int,
             help="For blurring operations, the size of the blur kernel.",
+        )
+        parser.add_argument(
+            "--dp_epsilon",
+            default=1.0,
+            type=float,
+            help="Epsilon value in differential privacy mechanisms.",
         )
         # --------------------------------------------------------------------------
         # arguments only relevant for processing script
@@ -126,7 +133,7 @@ class CustomArgumentParser:
 
     def get_dataset_objects(
         self,
-    ) -> (Iterator, FaceDataset, DatasetIdentityLookup):
+    ) -> tuple[Iterator, FaceDataset, DatasetIdentityLookup]:
         face_dataset: FaceDataset | None = None
         dataset_identity_lookup: DatasetIdentityLookup | None = None
         match self.args.dataset:
@@ -160,6 +167,10 @@ class CustomArgumentParser:
                 p_mech_object = GaussianBlurMechanism(kernel=self.args.blur_kernel)
             case "uniform_blur":
                 p_mech_object = UniformBlurMechanism(kernel=self.args.blur_kernel)
+            case "pixel_dp":
+                p_mech_object = PixelDPMechanism(
+                    epsilon=self.args.dp_epsilon, random_seed=self.args.random_seed
+                )
             case _:
                 raise Exception(
                     f"Invalid privacy operation argument ({self.args.privacy_mechanism})."
