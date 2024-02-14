@@ -1,3 +1,35 @@
+"""
+File: argument_parser.py
+
+This file contains a custom argument parset, CustomArgumentParser, designed for processing and
+evaluating datasets with specified anonymization methods and evaluation methodologies.
+
+Libraries and Modules:
+- argparse: Argument parsing library for command-line interfaces.
+- typing.Iterator: Type hinting for an iterator.
+- src.dataset.celeba_identity_lookup: Custom module for CelebA dataset identity lookup.
+- src.dataset.dataset_identity_lookup: Custom module for general dataset identity lookup.
+- src.dataset.face_dataset: Custom module for the FaceDataset class.
+- src.dataset.lfw_identity_lookup: Custome module for LFW dataset identity lookup.
+- src.privacy_mechanisms.gaussian_blur_mechanism: Custom module for GaussianBlurMechansm class.
+- src.privacy_mechanisms.pixel_dp_mechanism: Custom module for PixelDPMechanism class.
+- src.privacy_mechanisms.privacy_mechanism: Custom module for PrivacyMechanism abstract class.
+- src.privacy_mechanisms.test_mechanism: Custom module for TestMechanism class.
+- src.privacy_mechanisms.uniform_blur_mechanism: Custom module for UniformBlurMechanism class.
+- src.privacy_mechanisms.simple_mustache_mechanism: Custom module for SimpleMustacheMechanism class.
+
+Usage:
+- Instantiate the CustomArgumentParser class with a specified mode ("process" or "evaluate").
+- Parse command-line arguments using the parse_args method.
+- Retrieve dataset objects, including iterator, FaceDataset, and DatasetIdentityLookup using `get_dataset_objects` method.
+- Retrieve the PrivacyMechanism object using `get_privacy_mech_object` method.
+
+Note:
+- The custom argument parser handles arguments for processing and evaluating datasets with 
+  different privacy mechanisms and evaluation methodologies.
+"""
+
+
 import argparse
 from typing import Iterator
 
@@ -10,16 +42,44 @@ from src.privacy_mechanisms.pixel_dp_mechanism import PixelDPMechanism
 from src.privacy_mechanisms.privacy_mechanism import PrivacyMechanism
 from src.privacy_mechanisms.test_mechanism import TestMechanism
 from src.privacy_mechanisms.uniform_blur_mechanism import UniformBlurMechanism
+from src.privacy_mechanisms.simple_mustache_mechanism import SimpleMustacheMechanism
 
 
-# this class allows us to declare arguments all in one spot, with flags to specify
-# whether certain args should appear for each user-facing script
 class CustomArgumentParser:
+    """
+    Custom argument parser for processing and evaluating datasets with specified anonymization methods
+    and evaluation methodologies.
+
+    Attributes:
+    - mode (str): Processing or evaluation mode ("process" or "evaluate").
+    - args (argparse.Namespace): Prased command-line arguments.
+
+    Methods:
+    - parse_args(self) -> argparse.Namespace: Parse command-line arguments based on the mode.
+    - get_dataset_objects(self) -> tuple[Iterator, FaceDataset, DatasetIdentityLookup]:
+      Get dataset objects including iterator, FaceDataset, and DatasetIdentityLookup.
+    - get_privacy_mech_object(self) -> PrivacyMechanism: Get the PrivacyMechanism object.
+    """
+    
+
     def __init__(self, mode: str = "process") -> None:
+        """
+        Initialize the CustomArgumentParser with a specified mode.
+
+        Parameters:
+        - mode (str): Processing or evaluation mode ("process" or "evaluate"; default is "process")
+        """
         self.mode = mode
         assert self.mode in ["process", "evaluate"], f"{self.mode} not valid!"
 
+
     def parse_args(self) -> argparse.Namespace:
+        """
+        Parse command-line arguments based on the mode.
+
+        Returns:
+        - argparse.Namespace: Parsed command-line arguments.
+        """
         if self.mode == "process":
             parser = argparse.ArgumentParser(
                 prog="Process Dataset",
@@ -51,7 +111,7 @@ class CustomArgumentParser:
         )
         parser.add_argument(
             "--privacy_mechanism",
-            choices=["test", "gaussian_blur", "uniform_blur", "pixel_dp"],
+            choices=["test", "gaussian_blur", "uniform_blur", "pixel_dp", "simple_mustache"],
             default="uniform_blur",
             type=str,
             help="The privacy operation to apply.",
@@ -131,9 +191,16 @@ class CustomArgumentParser:
         print(f"Arguments:\n{self.args}")
         return self.args
 
+
     def get_dataset_objects(
         self,
     ) -> tuple[Iterator, FaceDataset, DatasetIdentityLookup]:
+        """
+        Get dataset objects including iterator, FaceDataset, and DatasetIdentityLookup.
+
+        Returns:
+        - tuple[Iterator, FaceDataset, DatasetIdentityLookup]: Dataset iterator, FaceDataset, and DatasetIdentityLookup.
+        """
         face_dataset: FaceDataset | None = None
         dataset_identity_lookup: DatasetIdentityLookup | None = None
         match self.args.dataset:
@@ -159,7 +226,14 @@ class CustomArgumentParser:
 
         return d_iter, face_dataset, dataset_identity_lookup
 
+
     def get_privacy_mech_object(self) -> PrivacyMechanism:
+        """
+        Get the PrivacyMechanism object.
+
+        Returns:
+        - PrivacyMechanism: An instance of PrivacyMechanism based on the specified privacy operation
+        """
         match self.args.privacy_mechanism:
             case "test":
                 p_mech_object = TestMechanism()
@@ -171,6 +245,8 @@ class CustomArgumentParser:
                 p_mech_object = PixelDPMechanism(
                     epsilon=self.args.dp_epsilon, random_seed=self.args.random_seed
                 )
+            case "simple_mustache":
+                p_mech_object = SimpleMustacheMechanism()
             case _:
                 raise Exception(
                     f"Invalid privacy operation argument ({self.args.privacy_mechanism})."
