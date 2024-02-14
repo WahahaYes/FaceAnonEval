@@ -1,3 +1,26 @@
+"""
+File: rank_k_evaluation.py
+
+This file contains a function, rank_k_evaluation, for evaluating a 
+face recognition system using rank-k evaluation on anonymized face images.
+
+Libraries and Modules:
+- numpy: Library for numerical operations.
+- tqdm: A library for displaying progress bars during iteration.
+- src.dataset.dataset_identity_lookup: Custom module providing the DataIdentityLookup class.
+- src.evaluation.evaluator: Custom module providing the Evaluator class.
+
+Usage:
+- Use the rank_k_evaluation function to perform a rank-k evaluation on a face recognition system using anonymized face images.
+- This function utilizes an Evaluator object for computing and storing embeddings of faces needed for evaluation. 
+- The identity_lookup parameter provides a mechanism for associating identities with face images for evaluation.
+
+Note:
+- The evaluation is performed by comparing each anonymized face in the query dataset with the reference dataset.
+- For each query face, the function finds the k closest matches in the reference dataset based on absolute distance.
+- The hits_and_misses list records whether the query face's identity is within the top-k matches.
+"""
+
 import argparse
 import os
 from pathlib import Path
@@ -18,15 +41,25 @@ def rank_k_evaluation(
     p_mech_object: PrivacyMechanism,
     args: argparse.Namespace,
 ):
-    print("================ Rank-K Identity Matching ================")
-    query_results = []  # stores a list of tuples (query_key, lowest_achieved_k)
+    """
+    Evaluate a face recognition system using rank-k evaluation on anonymized face images.
+
+    Parameters:
+    - evaluator (Evaluator): An instance of the Evaluator class.
+    - identity_lookup (DatasetIdentityLookup): An instance if the DatasetIdentityLookup class.
+    - k (int): The value of k for rank-k evaluation (default is 1).
+
+    Returns:
+    - list: A list containg hits and misses (1 for hit, 0 for miss) based on the rank-k evaluation.
+    """
+    hits_and_misses = []  # store a list of hits and misses
 
     # Iterate through every face of the query dataset
     pbar = tqdm(evaluator.anon_paths, desc="Iterating over query dataset.")
     for query_path in pbar:
         query_key = evaluator.generate_key(query_path)
 
-        # there's a chance that we've blocked part of the dataset (train/ val splits,
+        # there's a chance that we've blocked part of the dataset (train / val splits,
         # images where face was not detected), so skip them here
         try:
             query_label = identity_lookup.lookup(query_path)
@@ -46,7 +79,11 @@ def rank_k_evaluation(
         # NOTE: we're currently comparing with absolute distance, may consider using cosine similarity
         sorted_vals = sorted(
             evaluator.real_embeddings.items(),
-            key=lambda x: utils.embedding_distance(query_embedding, x[1]),
+            key=lambda x: np.mean(np.abs(query_embedding - x[1])),
+
+            # TODO: Review cosine similarity comparison implementation
+            # evaluator.real_embeddings.items(),
+            # key=lambda x: np.dot(query_embedding, x[1]) / (np.linalg.norm(query_embedding) * np.linalg.norm(x[1])),
         )
 
         # find the nearest matching identity

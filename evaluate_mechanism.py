@@ -1,3 +1,18 @@
+"""
+File: evaluation_script.py
+
+This script handles the evaluation of datasets with different privacy mechanisms.
+
+Libraries and Modules:
+- CustomArgumentParser: Custom argument parser for handling script-specific arguments.
+- Evaluator: Class for evaluating datasets with different privacy mechanisms.
+- lfw_validation_evaluation, rank_k_evaluation, validation_evaluation: Functions for specific evaluation methodologies.
+- PrivacyMechanism: Abstract class for anonymization methods.
+
+Usage:
+- Execute this script to perform evaluation on datasets with specified privacy mechanisms and evaluation methodologies.
+"""
+
 from src.argument_parser import CustomArgumentParser
 from src.evaluation.evaluator import Evaluator
 from src.evaluation.lfw_validation_evaluation import lfw_validation_evaluation

@@ -1,8 +1,24 @@
-import os
+"""
+File: process_dataset.py
 
+This script handles the process of anonymizing datasets with specified privacy mechanisms.
+
+Libraries and Modules:
+- os: Operating system functionality for directory manipulation.
+- cv2: OpenCV library for computer vision tasks.
+- tqdm: A library for displaying progress bars.
+- CustomArgumentParser: Custom argument parser for handling script-specific arguments.
+- PrivacyMechanism: Abstract class for anonymization methods.
+- img_tensor_to_cv2: Function for converting image tensors to OpenCV format.
+
+Usage:
+- Execute this script to apply specified privacy mechanism to the input dataset.
+"""
+
+
+import os
 import cv2
 from tqdm import tqdm
-
 from src.argument_parser import CustomArgumentParser
 from src.privacy_mechanisms.privacy_mechanism import (
     PrivacyMechanism,
