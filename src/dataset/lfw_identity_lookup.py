@@ -22,7 +22,7 @@ Note:
 - In the case of LFW, identities are assumed to be stored in labeled folders, making it simple to retrieve the identity label.
 """
 
-from pathlib import Path # Represents and manipulates filesystem paths
+from pathlib import Path  # Represents and manipulates filesystem paths
 
 from src.dataset.dataset_identity_lookup import DatasetIdentityLookup
 
@@ -35,7 +35,6 @@ class LFWIdentityLookup(DatasetIdentityLookup):
     - None
     """
 
-    
     def __init__(self):
         """
         Initialize the LFWIdentityLookup object.
@@ -44,7 +43,6 @@ class LFWIdentityLookup(DatasetIdentityLookup):
         - None
         """
         pass
-
 
     def lookup(self, file_path: str):
         """

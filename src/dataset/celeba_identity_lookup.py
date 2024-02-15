@@ -20,7 +20,7 @@ Usage:
 
 Attributes:
 - None
-
+ 
 Note:
 - The CelebA dataset is used, and the structure of the text file containing information is assumed to have each line in the format "<file_name> <identity_label>".
 - The `test_set_only` flag is used to process the test set exclusively.
@@ -30,6 +30,7 @@ Note:
 
 import ntpath
 from pathlib import Path
+
 from tqdm import tqdm
 
 from src.dataset.dataset_identity_lookup import DatasetIdentityLookup
@@ -42,7 +43,6 @@ class CelebAIdentityLookup(DatasetIdentityLookup):
     Attributes:
     - identity_dict (dict): A dictionary to store identity information.
     """
-
 
     def __init__(self, identity_file_path: str, test_set_only=False):
         """
@@ -83,7 +83,6 @@ class CelebAIdentityLookup(DatasetIdentityLookup):
 
                 # Adding the file name and identity label to the dictionary
                 self.identity_dict[file_name] = id_label
-
 
     def lookup(self, file_path: str):
         """

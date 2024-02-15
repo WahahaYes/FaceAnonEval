@@ -31,15 +31,14 @@ from src.utils import img_tensor_to_cv2
 class UniformBlurMechanism(PrivacyMechanism):
     """
     Simple anonymization method which blurs the whole image according to a kernel size.
-    
+
     Methods:
     - __init__(self, kernel: float=5) -> None: Initialize the UniformBlurMechanism.
     - process(self, img: torch.tensor) -> torch.tensor: Blur the entire image with the specified kernel size.
     - get_suffix(self) -> str: Get the suffix used for naming processed datasets.
     """
 
-
-    def __init__(self, kernel: float=5) -> None:
+    def __init__(self, kernel: float = 5) -> None:
         """
         Initialize the UniformBlurMechanism.
 
@@ -49,7 +48,6 @@ class UniformBlurMechanism(PrivacyMechanism):
         super(UniformBlurMechanism, self).__init__()
         self.kernel = kernel
         self.transform = transforms.ToTensor()
-
 
     def process(self, img: torch.tensor) -> torch.tensor:
         """
@@ -68,7 +66,6 @@ class UniformBlurMechanism(PrivacyMechanism):
             img[i] = img_torch
 
         return img
-
 
     def get_suffix(self) -> str:
         """

@@ -35,6 +35,7 @@ class GaussianBlurMechanism(PrivacyMechanism):
     Parameters:
     - kernel (float): The size of the Gaussian kernal for blurring (default is 5).
     """
+
     def __init__(self, kernel: float = 5) -> None:
         """
         Initialize the GaussianBlurMechanism with a specified kernel size.

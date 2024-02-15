@@ -16,20 +16,21 @@ Note:
 - This abstract class defines the structure for privacy mechanisms by declaring two abstract methods.
 """
 
-import torch
 from abc import ABC, abstractmethod
+
+import torch
 
 
 class PrivacyMechanism(ABC):
     """
     Abstract base class for anonymization methods.
     """
+
     def __init__(self) -> None:
         """
         Initialize the PrivacyMechanism.
         """
         pass
-
 
     @abstractmethod
     def process(self, img: torch.tensor) -> torch.tensor:
@@ -43,7 +44,6 @@ class PrivacyMechanism(ABC):
         - torch.tensor: Anonymized torch tensor images.
         """
         pass
-
 
     @abstractmethod
     def get_suffix(self) -> str:

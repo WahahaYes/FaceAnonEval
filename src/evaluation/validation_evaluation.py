@@ -247,7 +247,7 @@ def report_results(
     args: argparse.Namespace,
 ):
     """
-    Report and save the results of the validation. 
+    Report and save the results of the validation.
 
     Parameters:
     - embedding_pairs (list): a list containg tuples of (key1, key2, embedding1, embedding2, label, distance, predicted_label).

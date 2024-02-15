@@ -28,12 +28,12 @@ Note:
 """
 
 import glob
-from pathlib import Path # Represents and manipulates filesystem paths
-from typing import Iterator # Type hint for specifying the type of an iterator
+from pathlib import Path  # Represents and manipulates filesystem paths
+from typing import Iterator  # Type hint for specifying the type of an iterator
 
-import cv2 # OpenCV library for image processing
-from torch.utils.data import DataLoader, Dataset # PyTorch data loading utilities
-from torchvision import transforms # Transformations for image processing
+import cv2  # OpenCV library for image processing
+from torch.utils.data import DataLoader, Dataset  # PyTorch data loading utilities
+from torchvision import transforms  # Transformations for image processing
 
 
 class FaceDataset(Dataset):
@@ -47,7 +47,6 @@ class FaceDataset(Dataset):
     - celeba_test_set_only (bool): If True, include only images from the CelebA test set.
     """
 
-    
     def __init__(
         self,
         dir: str,

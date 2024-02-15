@@ -13,7 +13,7 @@ Usage:
 - Inherit from the DatasetIdentityLookup class when creating a dataset-specific identity lookup class.
 - Implement the abstract method `lookup`, which defines the mechanism to look up the identity corresponding to an image file.
 - The abstract class enforces that any concrete subclasses must provide an implementation for the `lookup` method.
-
+ 
 Attributes:
 - None
 
@@ -26,7 +26,7 @@ Note:
 - The `abstractmethod` decorator indicates that any concrete subclass must implement the `lookup` method, ensuring consistency across different identity lookup implementations.
 """
 
-from abc import ABC, abstractmethod # Provides infrastructure for defining ABCs
+from abc import ABC, abstractmethod  # Provides infrastructure for defining ABCs
 
 
 class DatasetIdentityLookup(ABC):
@@ -37,7 +37,6 @@ class DatasetIdentityLookup(ABC):
     - None
     """
 
-
     def __init__(self):
         """
         Initialize the DatasetIdentityLookup object.
@@ -46,7 +45,6 @@ class DatasetIdentityLookup(ABC):
         - None
         """
         pass
-
 
     @abstractmethod
     def lookup(self, file_path: str):

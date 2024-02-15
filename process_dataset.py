@@ -17,8 +17,10 @@ Usage:
 
 
 import os
+
 import cv2
 from tqdm import tqdm
+
 from src.argument_parser import CustomArgumentParser
 from src.privacy_mechanisms.privacy_mechanism import (
     PrivacyMechanism,

@@ -36,13 +36,11 @@ class TestMechanism(PrivacyMechanism):
     - get_suffix(self) -> str: Get the suffix used for naming processed datasets.
     """
 
-
     def __init__(self) -> None:
         """
         Initialize the TestMechanism.
         """
         super(TestMechanism, self).__init__()
-
 
     def process(self, img: torch.tensor) -> torch.tensor:
         """

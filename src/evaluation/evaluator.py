@@ -40,7 +40,6 @@ import pickle
 from pathlib import Path
 
 import cv2
-
 import insightface
 import onnxruntime
 from tqdm import tqdm
@@ -59,7 +58,6 @@ class Evaluator:
     - anon_embeddings (dict | None): Cached embeddings for anonymized faces.
     - batch_size (int): The batch size for processing faces.
     """
-
 
     def __init__(
         self,

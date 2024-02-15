@@ -40,9 +40,9 @@ from src.dataset.lfw_identity_lookup import LFWIdentityLookup
 from src.privacy_mechanisms.gaussian_blur_mechanism import GaussianBlurMechanism
 from src.privacy_mechanisms.pixel_dp_mechanism import PixelDPMechanism
 from src.privacy_mechanisms.privacy_mechanism import PrivacyMechanism
+from src.privacy_mechanisms.simple_mustache_mechanism import SimpleMustacheMechanism
 from src.privacy_mechanisms.test_mechanism import TestMechanism
 from src.privacy_mechanisms.uniform_blur_mechanism import UniformBlurMechanism
-from src.privacy_mechanisms.simple_mustache_mechanism import SimpleMustacheMechanism
 
 
 class CustomArgumentParser:
@@ -60,7 +60,6 @@ class CustomArgumentParser:
       Get dataset objects including iterator, FaceDataset, and DatasetIdentityLookup.
     - get_privacy_mech_object(self) -> PrivacyMechanism: Get the PrivacyMechanism object.
     """
-    
 
     def __init__(self, mode: str = "process") -> None:
         """
@@ -71,7 +70,6 @@ class CustomArgumentParser:
         """
         self.mode = mode
         assert self.mode in ["process", "evaluate"], f"{self.mode} not valid!"
-
 
     def parse_args(self) -> argparse.Namespace:
         """
@@ -111,7 +109,13 @@ class CustomArgumentParser:
         )
         parser.add_argument(
             "--privacy_mechanism",
-            choices=["test", "gaussian_blur", "uniform_blur", "pixel_dp", "simple_mustache"],
+            choices=[
+                "test",
+                "gaussian_blur",
+                "uniform_blur",
+                "pixel_dp",
+                "simple_mustache",
+            ],
             default="uniform_blur",
             type=str,
             help="The privacy operation to apply.",
@@ -197,7 +201,6 @@ class CustomArgumentParser:
         print(f"Arguments:\n{self.args}")
         return self.args
 
-
     def get_dataset_objects(
         self,
     ) -> tuple[Iterator, FaceDataset, DatasetIdentityLookup]:
@@ -231,7 +234,6 @@ class CustomArgumentParser:
         )
 
         return d_iter, face_dataset, dataset_identity_lookup
-
 
     def get_privacy_mech_object(self) -> PrivacyMechanism:
         """

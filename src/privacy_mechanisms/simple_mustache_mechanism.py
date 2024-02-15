@@ -3,7 +3,7 @@ File: simple_mustache_mechanism.py
 
 This file contains a class, SimpleMustacheMechanism, representing a privacy mechanism
 that adds a mustache to faces in images.
-
+ 
 Libraries and Modules:
 - cv2: OpenCV library for computer vision.
 - torch: PyTorch, an open-source deep learning library.
@@ -22,12 +22,13 @@ Note:
 """
 
 import cv2
-import torch
 import numpy as np
+import torch
 from torchvision import transforms
 
 from src.privacy_mechanisms.privacy_mechanism import PrivacyMechanism
 from src.utils import img_tensor_to_cv2
+
 
 class SimpleMustacheMechanism(PrivacyMechanism):
     """
@@ -40,13 +41,11 @@ class SimpleMustacheMechanism(PrivacyMechanism):
     - get_suffix(self) -> str: Get a suffix representing the privacy mechanism.
     """
 
-
     def __init__(self) -> None:
         """
         Initialize the SimpleMustacheMechanism.
         """
         super(SimpleMustacheMechanism, self).__init__()
-
 
     def add_mustache(self, face: np.ndarray, mustache: np.ndarray) -> np.ndarray:
         """
@@ -68,13 +67,17 @@ class SimpleMustacheMechanism(PrivacyMechanism):
 
         # Find the face region
         gray_face = cv2.cvtColor(face, cv2.COLOR_BGR2GRAY)
-        face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
-        faces = face_cascade.detectMultiScale(gray_face, scaleFactor=1.3, minNeighbors=5)
+        face_cascade = cv2.CascadeClassifier(
+            cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+        )
+        faces = face_cascade.detectMultiScale(
+            gray_face, scaleFactor=1.3, minNeighbors=5
+        )
 
         if len(faces) == 0:
             print("No faces detected.")
             return face
-        
+
         x, y, w, h = faces[0]
 
         # Roughly adjust the coordinates to place the mustache just below the nose
@@ -82,10 +85,9 @@ class SimpleMustacheMechanism(PrivacyMechanism):
         mustache_height, mustache_width = mustache.shape[:2]
 
         # Calculate the region of interest for the mustache
-        roi = face[mustache_y:mustache_y + mustache_height, x:x + mustache_width]
+        roi = face[mustache_y : mustache_y + mustache_height, x : x + mustache_width]
 
         return face
-    
 
     def process(self, img: torch.tensor) -> torch.tensor:
         """
@@ -110,8 +112,7 @@ class SimpleMustacheMechanism(PrivacyMechanism):
             img_np[i] = transforms.ToTensor()(img_np)
 
             return img_torch
-        
-    
+
     def get_suffix(self) -> str:
         """
         Get a suffix representing the privacy mechanism.
