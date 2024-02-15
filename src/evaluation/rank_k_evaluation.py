@@ -52,14 +52,15 @@ def rank_k_evaluation(
     Returns:
     - list: A list containg hits and misses (1 for hit, 0 for miss) based on the rank-k evaluation.
     """
-    hits_and_misses = []  # store a list of hits and misses
+    print("================ Rank-K Identity Matching ================")
+    query_results = []  # stores a list of tuples (query_key, lowest_achieved_k)
 
     # Iterate through every face of the query dataset
     pbar = tqdm(evaluator.anon_paths, desc="Iterating over query dataset.")
     for query_path in pbar:
         query_key = evaluator.generate_key(query_path)
 
-        # there's a chance that we've blocked part of the dataset (train / val splits,
+        # there's a chance that we've blocked part of the dataset (train/ val splits,
         # images where face was not detected), so skip them here
         try:
             query_label = identity_lookup.lookup(query_path)
@@ -79,11 +80,7 @@ def rank_k_evaluation(
         # NOTE: we're currently comparing with absolute distance, may consider using cosine similarity
         sorted_vals = sorted(
             evaluator.real_embeddings.items(),
-            key=lambda x: np.mean(np.abs(query_embedding - x[1])),
-
-            # TODO: Review cosine similarity comparison implementation
-            # evaluator.real_embeddings.items(),
-            # key=lambda x: np.dot(query_embedding, x[1]) / (np.linalg.norm(query_embedding) * np.linalg.norm(x[1])),
+            key=lambda x: utils.embedding_distance(query_embedding, x[1]),
         )
 
         # find the nearest matching identity

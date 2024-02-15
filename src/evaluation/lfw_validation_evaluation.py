@@ -50,7 +50,17 @@ def lfw_validation_evaluation(
     Returns:
     - list: A list containing hits and misses (1 for hit, 0 for miss) based on the evaluation.
     """
-    # (embedding 1, embedding 2, label)
+    print("================ LFW Validation ================")
+
+    real_pairs, anon_pairs = lfw_create_pairs(evaluator)
+    ideal_threshold = compute_threshold(real_pairs)
+    print(f"Ideal threshold = {ideal_threshold}")
+    anon_pairs = predict_pairs(anon_pairs, ideal_threshold)
+    report_results(anon_pairs, p_mech_object, args)
+
+
+def lfw_create_pairs(evaluator: Evaluator):
+    # (key1, key2, embedding 1, embedding 2, label)
     real_pairs = []
     anon_pairs = []
 

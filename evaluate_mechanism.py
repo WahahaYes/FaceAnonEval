@@ -20,6 +20,7 @@ from src.evaluation.rank_k_evaluation import (
     rank_k_evaluation,
 )
 from src.evaluation.validation_evaluation import validation_evaluation
+from src.privacy_mechanisms.pmech_suffix import PMechSuffix
 from src.privacy_mechanisms.privacy_mechanism import PrivacyMechanism
 
 if __name__ == "__main__":
@@ -38,6 +39,8 @@ if __name__ == "__main__":
             f"Anonymized Datasets//{args.dataset}_{p_mech_object.get_suffix()}"
         )
     else:
+        detected_suffix = args.anonymized_dataset.replace(args.dataset, "")
+        p_mech_object: PrivacyMechanism = PMechSuffix(detected_suffix)
         anon_dataset_path = f"Anonymized Datasets//{args.anonymized_dataset}"
 
     # Load in the datasets via Evaluator class

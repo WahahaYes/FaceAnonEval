@@ -21,7 +21,8 @@ Usage:
 
 import numpy as np
 import torch
-from config import EMBEDDING_COMPARISON_METHOD
+
+from src.config import EMBEDDING_COMPARISON_METHOD
 
 
 def img_tensor_to_cv2(img: torch.tensor) -> np.ndarray:
