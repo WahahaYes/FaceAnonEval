@@ -12,9 +12,6 @@ from tqdm import tqdm
 
 from src.utils import chunk_list
 
-# TODO: Look into this some more, onnxruntime outputs warnings but seems to be working fine.
-onnxruntime.set_default_logger_severity(4)
-
 
 # An evaluator stores the paths and computes the embeddings of all faces needed for an evaluation.
 class Evaluator:
@@ -58,6 +55,9 @@ class Evaluator:
             self.anon_paths.append(file)
 
         self.batch_size = batch_size
+
+        # TODO: Look into this some more, onnxruntime outputs warnings but seems to be working fine.
+        onnxruntime.set_default_logger_severity(4)
 
         print("Loading face detection model.")
         self.detect_model = insightface.model_zoo.get_model(
