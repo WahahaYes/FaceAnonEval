@@ -47,9 +47,6 @@ from tqdm import tqdm
 
 from src.utils import chunk_list
 
-# TODO: Look into this some more, onnxruntime outputs warnings but seems to be working fine.
-onnxruntime.set_default_logger_severity(4)
-
 
 class Evaluator:
     """
@@ -116,6 +113,9 @@ class Evaluator:
 
         self.batch_size = batch_size
 
+        # TODO: Look into this some more, onnxruntime outputs warnings but seems to be working fine.
+        onnxruntime.set_default_logger_severity(4)
+
         print("Loading face detection model.")
         self.detect_model = insightface.model_zoo.get_model(
             os.path.expanduser("~//.insightface//models//buffalo_l//det_10g.onnx"),
@@ -179,6 +179,7 @@ class Evaluator:
         - dict: Dictionary containing embeddings of faces.
         """
         embed_dict = dict()
+        warn_counter = 0
         for f_paths in tqdm(
             chunk_list(file_paths, self.batch_size),
             total=len(file_paths) // self.batch_size,
@@ -194,6 +195,7 @@ class Evaluator:
             imgs = []
             valid_paths = []
             for f_p in f_paths:
+                img = None
                 try:
                     # Try to detect and crop the images, skip those that fail.
                     img = cv2.imread(f_p)
@@ -201,17 +203,22 @@ class Evaluator:
                     aimg = insightface.utils.face_align.norm_crop(img, landmark=kpss[0])
                     imgs.append(aimg)
                     valid_paths.append(f_p)
-                except Exception as e:
-                    print(f"Warning: Face could not be detected ({f_p}).\n{e}")
+                except Exception:
+                    warn_counter += 1
                     # pass the uncropped image along
-                    imgs.append(img)
-                    valid_paths.append(f_p)
+                    if img is not None:
+                        imgs.append(img)
+                        valid_paths.append(f_p)
+                    else:
+                        print(f"Warning: {f_p} image could not be read!")
+
             if len(imgs) > 0:
                 # compute and store the embeddings.
                 embeddings = self.recog_model.get_feat(imgs)
                 for i in range(len(embeddings)):
                     embed_dict[self.generate_key(valid_paths[i])] = embeddings[i]
-
+        if warn_counter > 0:
+            print(f"Warning: {warn_counter} images' faces could not be detected.")
         return embed_dict
 
     def generate_key(self, file_path: str):
