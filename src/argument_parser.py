@@ -38,6 +38,7 @@ from src.dataset.dataset_identity_lookup import DatasetIdentityLookup
 from src.dataset.face_dataset import FaceDataset, dataset_iterator
 from src.dataset.lfw_identity_lookup import LFWIdentityLookup
 from src.privacy_mechanisms.gaussian_blur_mechanism import GaussianBlurMechanism
+from src.privacy_mechanisms.metric_privacy_mechanism import MetricPrivacyMechanism
 from src.privacy_mechanisms.pixel_dp_mechanism import PixelDPMechanism
 from src.privacy_mechanisms.privacy_mechanism import PrivacyMechanism
 from src.privacy_mechanisms.simple_mustache_mechanism import SimpleMustacheMechanism
@@ -114,6 +115,7 @@ class CustomArgumentParser:
                 "gaussian_blur",
                 "uniform_blur",
                 "pixel_dp",
+                "metric_privacy",
                 "simple_mustache",
             ],
             default="uniform_blur",
@@ -151,6 +153,13 @@ class CustomArgumentParser:
             default=1,
             type=int,
             help="the downsample rate for pixelization in pixel dp.",
+        )
+        parser.add_argument(
+            "--metric_privacy_k",
+            default=4,
+            type=int,
+            help="In metric privacy, the number of singular values to "
+            "keep and privatize before reconstruction.",
         )
         # --------------------------------------------------------------------------
         # arguments only relevant for processing script
@@ -253,6 +262,12 @@ class CustomArgumentParser:
                 p_mech_object = PixelDPMechanism(
                     epsilon=self.args.dp_epsilon,
                     b=self.args.pixel_dp_b,
+                    random_seed=self.args.random_seed,
+                )
+            case "metric_privacy":
+                p_mech_object = MetricPrivacyMechanism(
+                    epsilon=self.args.dp_epsilon,
+                    k=self.args.metric_privacy_k,
                     random_seed=self.args.random_seed,
                 )
             case "simple_mustache":
