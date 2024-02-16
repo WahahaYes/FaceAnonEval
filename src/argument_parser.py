@@ -154,6 +154,13 @@ class CustomArgumentParser:
             type=int,
             help="the downsample rate for pixelization in pixel dp.",
         )
+        parser.add_argument(
+            "--metric_privacy_k",
+            default=4,
+            type=int,
+            help="In metric privacy, the number of singular values to "
+            "keep and privatize before reconstruction.",
+        )
         # --------------------------------------------------------------------------
         # arguments only relevant for processing script
         if self.mode == "process":
@@ -260,6 +267,7 @@ class CustomArgumentParser:
             case "metric_privacy":
                 p_mech_object = MetricPrivacyMechanism(
                     epsilon=self.args.dp_epsilon,
+                    k=self.args.metric_privacy_k,
                     random_seed=self.args.random_seed,
                 )
             case "simple_mustache":
