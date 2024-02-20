@@ -69,8 +69,6 @@ class MetricPrivacyMechanism(DetectFaceMechanism):
             # replace the face and update our tensor
             img_cv2[bbox[1] : bbox[3], bbox[0] : bbox[2]] = crop_img_cv2
             img_cv2 = (img_cv2 * 255).astype(np.uint8)
-            cv2.imshow("", img_cv2)
-            cv2.waitKey(10)
             img[i] = self.ToTensor(img_cv2)
 
         return img
@@ -87,8 +85,10 @@ class MetricPrivacyMechanism(DetectFaceMechanism):
                 return pickle.load(read_file)
 
         file_paths = glob.glob("Datasets//CelebA//**//*.jpg", recursive=True)
-        values = [[] for _ in range(self.k)]
-        num_samples = 1000
+        # we assign a maximum value to keep track of
+        max_k = 50
+        values = [[] for _ in range(max_k)]
+        num_samples = 10000
 
         for _ in tqdm(
             range(num_samples), desc="Estimating sensitivity of SVD decomposition"
@@ -97,11 +97,13 @@ class MetricPrivacyMechanism(DetectFaceMechanism):
             img = cv2.imread(path)
             crop_img, bbox = self.get_face_region(img)
             for channel in range(3):
-                U, S, Vh = np.linalg.svd(crop_img[:, :, channel])
-                S[self.k :] = 0
-                S = S / np.linalg.norm(S)
-                for i in range(self.k):
-                    values[i].append(S[i])
+                try:
+                    U, S, Vh = np.linalg.svd(crop_img[:, :, channel])
+                    S = S / np.linalg.norm(S)
+                    for i in range(max_k):
+                        values[i].append(S[i])
+                except:
+                    pass
 
         sensitivities = []
         for value_list in values:
