@@ -1,7 +1,7 @@
 # FaceAnonEval
 A codebase to evaluate SOTA in face anonymization.
 
-## Apptainer instructions
+## Docker instructions
 Run one of the following commands to docker an docker image:
 ```
 docker build -t faceanoneval:gpu .
