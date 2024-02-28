@@ -19,6 +19,7 @@ from src.evaluation.lfw_validation_evaluation import lfw_validation_evaluation
 from src.evaluation.rank_k_evaluation import (
     rank_k_evaluation,
 )
+from src.evaluation.utility.utility_evaluation import utility_evaluation
 from src.evaluation.validation_evaluation import validation_evaluation
 from src.privacy_mechanisms.pmech_suffix import PMechSuffix
 from src.privacy_mechanisms.privacy_mechanism import PrivacyMechanism
@@ -73,6 +74,8 @@ if __name__ == "__main__":
             lfw_validation_evaluation(
                 evaluator=evaluator, p_mech_object=p_mech_object, args=args
             )
+        case "utility":
+            utility_evaluation(p_mech_object=p_mech_object, args=args)
         case _:
             raise Exception(
                 f"Invalid evaluation method argument ({args.evaluation_method})."

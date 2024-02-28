@@ -31,7 +31,7 @@ from tqdm import tqdm
 
 from src import utils
 from src.dataset.dataset_identity_lookup import DatasetIdentityLookup
-from src.evaluation.evaluator import Evaluator
+from src.evaluation.evaluator import Evaluator, generate_key
 from src.privacy_mechanisms.privacy_mechanism import PrivacyMechanism
 
 
@@ -58,7 +58,7 @@ def rank_k_evaluation(
     # Iterate through every face of the query dataset
     pbar = tqdm(evaluator.anon_paths, desc="Iterating over query dataset.")
     for query_path in pbar:
-        query_key = evaluator.generate_key(query_path)
+        query_key = generate_key(query_path)
 
         # there's a chance that we've blocked part of the dataset (train/ val splits,
         # images where face was not detected), so skip them here
@@ -115,9 +115,11 @@ def rank_k_evaluation(
         print(f"Accuracy @ k={k:02d}:\t{sum_valid / len(query_results):.2%}")
 
     if args.anonymized_dataset is None:
-        out_path = f"Results//{args.evaluation_method}//{args.dataset}_{p_mech_object.get_suffix()}.csv"
+        out_path = f"Results//Privacy//{args.evaluation_method}//{args.dataset}_{p_mech_object.get_suffix()}.csv"
     else:
-        out_path = f"Results//{args.evaluation_method}//{args.anonymized_dataset}.csv"
+        out_path = (
+            f"Results//Privacy//{args.evaluation_method}//{args.anonymized_dataset}.csv"
+        )
     os.makedirs(Path(out_path).parent, exist_ok=True)
     print(f"Writing results to {out_path}.")
     df.to_csv(out_path)

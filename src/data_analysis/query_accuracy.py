@@ -20,13 +20,9 @@ def query_accuracy(
             "should be passed as denominator!"
         )
 
-    csv_path = (
-        f"Results//{evaluation_method}//{dataset}_{p_mech_suffix}.csv"
-        if anonymized_dataset is None
-        else f"Results//{evaluation_method}//{anonymized_dataset}.csv"
+    csv_path = get_results_csv_path(
+        evaluation_method, dataset, p_mech_suffix, anonymized_dataset
     )
-
-    assert os.path.isfile(csv_path), f"{csv_path} was queried but does not exist!"
 
     match evaluation_method:
         case "rank_k":
@@ -35,10 +31,31 @@ def query_accuracy(
             return _query_validation(csv_path, mode, denominator)
         case "lfw_validation":
             return _query_validation(csv_path, mode, denominator)
+        case "utility":
+            return _query_utility(csv_path, mode, denominator)
         case _:
             raise Exception(
                 f"Invalid evaluation method passed in ({evaluation_method})!"
             )
+
+
+def get_results_csv_path(
+    evaluation_method: str,
+    dataset: str,
+    p_mech_suffix: str,
+    anonymized_dataset: str | None = None,
+):
+    folder = "Utility" if evaluation_method == "utility" else "Privacy"
+
+    csv_path = (
+        f"Results//{folder}//{evaluation_method}//{dataset}_{p_mech_suffix}.csv"
+        if anonymized_dataset is None
+        else f"Results//{folder}//{evaluation_method}//{anonymized_dataset}.csv"
+    )
+
+    assert os.path.isfile(csv_path), f"{csv_path} was queried but does not exist!"
+
+    return csv_path
 
 
 def _query_rank_k(
@@ -64,3 +81,25 @@ def _query_validation(
         return np.sum(df["result"] == 1)
     elif mode == "mean":
         return np.sum(df["result"] == 1) / denominator
+
+
+def _query_utility(
+    csv_path: str, mode: str = "sum", denominator: int | None = None
+) -> dict:
+    df = pd.read_csv(csv_path)
+
+    results = dict()
+    # regression metrics
+    for metric in ["ssim_img", "ssim_face", "emotion_prob_err"]:
+        if mode == "sum":
+            results[metric] = np.sum(df[metric])
+        elif mode == "mean":
+            results[metric] = np.mean(df[metric])
+    # classification metrics
+    for metric in ["emotion_class"]:
+        if mode == "sum":
+            results[metric] = np.sum(df[metric] == 1)
+        elif mode == "mean":
+            results[metric] = np.sum(df[metric] == 1) / denominator
+
+    return results

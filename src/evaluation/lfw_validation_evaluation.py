@@ -27,7 +27,7 @@ import os
 
 from tqdm import tqdm
 
-from src.evaluation.evaluator import Evaluator
+from src.evaluation.evaluator import Evaluator, generate_key
 from src.evaluation.validation_evaluation import (
     compute_threshold,
     predict_pairs,
@@ -90,8 +90,8 @@ def lfw_create_pairs(evaluator: Evaluator):
             try:
                 real_pairs.append(
                     (
-                        evaluator.generate_key(f1_path),
-                        evaluator.generate_key(f2_path),
+                        generate_key(f1_path),
+                        generate_key(f2_path),
                         evaluator.get_real_embedding(f1_path),
                         evaluator.get_real_embedding(f2_path),
                         label,
@@ -105,8 +105,8 @@ def lfw_create_pairs(evaluator: Evaluator):
                 try:
                     anon_pairs.append(
                         (
-                            evaluator.generate_key(f1_path),
-                            evaluator.generate_key(f2_path),
+                            generate_key(f1_path),
+                            generate_key(f2_path),
                             evaluator.get_real_embedding(f1_path),
                             evaluator.get_anon_embedding(f2_path),
                             label,

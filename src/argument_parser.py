@@ -184,7 +184,7 @@ class CustomArgumentParser:
             )
             parser.add_argument(
                 "--evaluation_method",
-                choices=["rank_k", "validation", "lfw_validation"],
+                choices=["rank_k", "validation", "lfw_validation", "utility"],
                 default="rank_k",
                 type=str,
                 help="The evaluation methodology to use.  Some methods may rely on other arguments as hyperparameters.",

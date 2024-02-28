@@ -21,6 +21,10 @@ Usage:
 
 import numpy as np
 import torch
+import os
+
+import insightface
+import onnxruntime
 
 from src.config import EMBEDDING_COMPARISON_METHOD
 
@@ -85,3 +89,23 @@ def embedding_distance(emb1, emb2):
 
     if "cosine" in EMBEDDING_COMPARISON_METHOD:
         return 1 - np.dot(emb1, emb2) / (np.linalg.norm(emb1) * np.linalg.norm(emb2))
+
+def load_insightface_models():
+    # this line suppresses warnings (was experiencing weird thread allocation warnings)
+    onnxruntime.set_default_logger_severity(4)
+
+    print("Loading face detection model.")
+    detect_model = insightface.model_zoo.get_model(
+        os.path.expanduser("~//.insightface//models//buffalo_l//det_10g.onnx"),
+        download=True,
+    )
+    print("Loading facial recognition model.")
+    # The recognition model (Arcface with Resnet50 backbone), allows us to batch inputs
+    recog_model = insightface.model_zoo.get_model(
+        os.path.expanduser("~//.insightface//models//buffalo_l//w600k_r50.onnx"),
+        download=True,
+    )
+    detect_model.prepare(ctx_id=0, det_size=(640, 640), input_size=(640, 640))
+    recog_model.prepare(ctx_id=0)
+
+    return detect_model, recog_model
