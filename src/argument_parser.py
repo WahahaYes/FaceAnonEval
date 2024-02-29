@@ -38,11 +38,12 @@ from src.dataset.dataset_identity_lookup import DatasetIdentityLookup
 from src.dataset.face_dataset import FaceDataset, dataset_iterator
 from src.dataset.lfw_identity_lookup import LFWIdentityLookup
 from src.privacy_mechanisms.gaussian_blur_mechanism import GaussianBlurMechanism
+from src.privacy_mechanisms.metric_privacy_mechanism import MetricPrivacyMechanism
 from src.privacy_mechanisms.pixel_dp_mechanism import PixelDPMechanism
 from src.privacy_mechanisms.privacy_mechanism import PrivacyMechanism
+from src.privacy_mechanisms.simple_mustache_mechanism import SimpleMustacheMechanism
 from src.privacy_mechanisms.test_mechanism import TestMechanism
 from src.privacy_mechanisms.uniform_blur_mechanism import UniformBlurMechanism
-from src.privacy_mechanisms.simple_mustache_mechanism import SimpleMustacheMechanism
 
 
 class CustomArgumentParser:
@@ -60,7 +61,6 @@ class CustomArgumentParser:
       Get dataset objects including iterator, FaceDataset, and DatasetIdentityLookup.
     - get_privacy_mech_object(self) -> PrivacyMechanism: Get the PrivacyMechanism object.
     """
-    
 
     def __init__(self, mode: str = "process") -> None:
         """
@@ -71,7 +71,6 @@ class CustomArgumentParser:
         """
         self.mode = mode
         assert self.mode in ["process", "evaluate"], f"{self.mode} not valid!"
-
 
     def parse_args(self) -> argparse.Namespace:
         """
@@ -111,7 +110,14 @@ class CustomArgumentParser:
         )
         parser.add_argument(
             "--privacy_mechanism",
-            choices=["test", "gaussian_blur", "uniform_blur", "pixel_dp", "simple_mustache"],
+            choices=[
+                "test",
+                "gaussian_blur",
+                "uniform_blur",
+                "pixel_dp",
+                "metric_privacy",
+                "simple_mustache",
+            ],
             default="uniform_blur",
             type=str,
             help="The privacy operation to apply.",
@@ -141,6 +147,19 @@ class CustomArgumentParser:
             default=1.0,
             type=float,
             help="Epsilon value in differential privacy mechanisms.",
+        )
+        parser.add_argument(
+            "--pixel_dp_b",
+            default=1,
+            type=int,
+            help="the downsample rate for pixelization in pixel dp.",
+        )
+        parser.add_argument(
+            "--metric_privacy_k",
+            default=4,
+            type=int,
+            help="In metric privacy, the number of singular values to "
+            "keep and privatize before reconstruction.",
         )
         # --------------------------------------------------------------------------
         # arguments only relevant for processing script
@@ -191,7 +210,6 @@ class CustomArgumentParser:
         print(f"Arguments:\n{self.args}")
         return self.args
 
-
     def get_dataset_objects(
         self,
     ) -> tuple[Iterator, FaceDataset, DatasetIdentityLookup]:
@@ -226,7 +244,6 @@ class CustomArgumentParser:
 
         return d_iter, face_dataset, dataset_identity_lookup
 
-
     def get_privacy_mech_object(self) -> PrivacyMechanism:
         """
         Get the PrivacyMechanism object.
@@ -243,7 +260,15 @@ class CustomArgumentParser:
                 p_mech_object = UniformBlurMechanism(kernel=self.args.blur_kernel)
             case "pixel_dp":
                 p_mech_object = PixelDPMechanism(
-                    epsilon=self.args.dp_epsilon, random_seed=self.args.random_seed
+                    epsilon=self.args.dp_epsilon,
+                    b=self.args.pixel_dp_b,
+                    random_seed=self.args.random_seed,
+                )
+            case "metric_privacy":
+                p_mech_object = MetricPrivacyMechanism(
+                    epsilon=self.args.dp_epsilon,
+                    k=self.args.metric_privacy_k,
+                    random_seed=self.args.random_seed,
                 )
             case "simple_mustache":
                 p_mech_object = SimpleMustacheMechanism()

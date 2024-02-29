@@ -3,7 +3,7 @@ File: simple_mustache_mechanism.py
 
 This file contains a class, SimpleMustacheMechanism, representing a privacy mechanism
 that adds a mustache to faces in images.
-
+ 
 Libraries and Modules:
 - cv2: OpenCV library for computer vision.
 - torch: PyTorch, an open-source deep learning library.
@@ -22,12 +22,13 @@ Note:
 """
 
 import cv2
-import torch
 import numpy as np
+import torch
 from torchvision import transforms
 
 from src.privacy_mechanisms.privacy_mechanism import PrivacyMechanism
 from src.utils import img_tensor_to_cv2
+
 
 class SimpleMustacheMechanism(PrivacyMechanism):
     """
@@ -40,13 +41,22 @@ class SimpleMustacheMechanism(PrivacyMechanism):
     - get_suffix(self) -> str: Get a suffix representing the privacy mechanism.
     """
 
-
     def __init__(self) -> None:
         """
         Initialize the SimpleMustacheMechanism.
         """
         super(SimpleMustacheMechanism, self).__init__()
 
+        # Load and configure Haar Cascade Classifiers
+        # Location of OpenCV Haar Cascade Classifiers
+        faceCascadeFile = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+
+        # Build cv2 Cascade Classifiers
+        self.faceCascade = cv2.CascadeClassifier(faceCascadeFile)
+        self.noseCascade = cv2.CascadeClassifier("assets//haarcascade_mcs_nose.xml")
+
+        if self.noseCascade.empty():
+            raise IOError("Unable to load the nose cascade classifier xml file")
 
     def add_mustache(self, face: np.ndarray, mustache: np.ndarray) -> np.ndarray:
         """
@@ -59,32 +69,21 @@ class SimpleMustacheMechanism(PrivacyMechanism):
         Returns:
         - np.ndarray: Face image with a mustache.
         """
-        # Load and configure Haar Cascade Classifiers
-        # Location of OpenCV Haar Cascade Classifiers
-        faceCascadeFile = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
-        # noseCascadeFile = cv2.data.haarcascades + "haarcascade_mcs_nose.xml"
-
-        # Build cv2 Cascade Classifiers
-        faceCascade = cv2.CascadeClassifier(faceCascadeFile)
-        noseCascade = cv2.CascadeClassifier("haarcascade_mcs_nose.xml")
-
-        if noseCascade.empty():
-            raise IOError('Unable to load the nose cascade classifier xml file')
 
         # Load and configure mustache (.png with alpha transparency)
-        orig_mask = mustache[:,:,3]
+        orig_mask = mustache[:, :, 3]
         orig_mask_inv = cv2.bitwise_not(orig_mask)
-        mustache = mustache[:,:,0:3]
+        mustache = mustache[:, :, 0:3]
         origMustacheHeight, origMustacheWidth = mustache.shape[:2]
 
         # Find the face region
         gray_face = cv2.cvtColor(face, cv2.COLOR_BGR2GRAY)
-        faces = faceCascade.detectMultiScale(
+        faces = self.faceCascade.detectMultiScale(
             gray_face,
             scaleFactor=1.1,
             minNeighbors=5,
-            minSize=(30,30),
-            flags=cv2.CASCADE_SCALE_IMAGE
+            minSize=(30, 30),
+            flags=cv2.CASCADE_SCALE_IMAGE,
         )
 
         if len(faces) == 0:
@@ -93,24 +92,24 @@ class SimpleMustacheMechanism(PrivacyMechanism):
 
         # Assumes only one face in image
         x, y, w, h = faces[0]
-        roi_gray = gray_face[y:y+h, x:x+w]
-        roi_color = face[y:y+h, x:x+w]
+        roi_gray = gray_face[y : y + h, x : x + w]
+        roi_color = face[y : y + h, x : x + w]
 
         # Detect a nose within the region bounded by face (i.e. the ROI)
-        nose = noseCascade.detectMultiScale(roi_gray)
+        nose = self.noseCascade.detectMultiScale(roi_gray)
 
         if len(nose) == 0:
             print("No nose detected.")
             return face
 
-        for (nx,ny,nw,nh) in nose:
+        for nx, ny, nw, nh in nose:
             mustacheWidth = 3 * nw
             mustacheHeight = mustacheWidth * origMustacheHeight / origMustacheWidth
 
-            x1 = int(nx - (mustacheWidth/4))
-            x2 = int(nx + nw + (mustacheWidth/4))
-            y1 = int(ny + nh - (mustacheHeight/2))
-            y2 = int(ny + nh + (mustacheHeight/2))
+            x1 = int(nx - (mustacheWidth / 4))
+            x2 = int(nx + nw + (mustacheWidth / 4))
+            y1 = int(ny + nh - (mustacheHeight / 2))
+            y2 = int(ny + nh + (mustacheHeight / 2))
 
             if x1 < 0:
                 x1 = 0
@@ -125,9 +124,17 @@ class SimpleMustacheMechanism(PrivacyMechanism):
             mustacheHeight = int(y2 - y1)
 
             # Resize mustache and masks
-            mustache = cv2.resize(mustache, (mustacheWidth, mustacheHeight), interpolation=cv2.INTER_AREA)
-            mask = cv2.resize(orig_mask, (mustacheWidth, mustacheHeight), interpolation=cv2.INTER_AREA)
-            mask_inv = cv2.resize(orig_mask_inv, (mustacheWidth, mustacheHeight), interpolation=cv2.INTER_AREA)
+            mustache = cv2.resize(
+                mustache, (mustacheWidth, mustacheHeight), interpolation=cv2.INTER_AREA
+            )
+            mask = cv2.resize(
+                orig_mask, (mustacheWidth, mustacheHeight), interpolation=cv2.INTER_AREA
+            )
+            mask_inv = cv2.resize(
+                orig_mask_inv,
+                (mustacheWidth, mustacheHeight),
+                interpolation=cv2.INTER_AREA,
+            )
 
             # Make mustache ROI from background equal to size of mustache image
             roi = roi_color[y1:y2, x1:x2]
@@ -153,7 +160,6 @@ class SimpleMustacheMechanism(PrivacyMechanism):
         Returns:
         - torch.tensor: Processed torch tensor image with a mustache.
         """
-        
 
         # Iterate over each face in the batch and add a mustache
         for i in range(img.shape[0]):
@@ -169,7 +175,7 @@ class SimpleMustacheMechanism(PrivacyMechanism):
 
             # Convert the modified numpy array back to a torch tensor
             img_torch = transforms.ToTensor()(img_np)
-            
+
             img[i] = img_torch
 
         return img

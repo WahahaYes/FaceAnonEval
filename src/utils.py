@@ -1,10 +1,40 @@
+"""
+File: utils.py
+
+This file contains utility functions for image processing and general tasks.
+
+Libraries and Modules:
+- numpy: Library for numerical operations.
+- torch: PyTorch deep learning library.
+
+Functions:
+- img_tensor_to_cv2(img: torch.tensor) -> np.ndarray: Convert a PyTorch tensor image to a NumPy array.
+- chunk_list(data, chunksize): Load a list in chunks.
+- embedding_distance(emb1, emb2): Calculate the distance between two embeddings based on specified methods.
+
+Constants:
+- EMBEDDING_COMPARISON_METHOD (List[str]): List of embedding comparison methods.
+
+Usage:
+- Utilize the provided functions for image processing and general tasks in the project.
+"""
+
 import numpy as np
 import torch
 
+from src.config import EMBEDDING_COMPARISON_METHOD
 
-# expects a [3xWxH] image in [0, 1] range
+
 def img_tensor_to_cv2(img: torch.tensor) -> np.ndarray:
-    # a Pytorch tensor is in the format CxWxH or NxCxWxH
+    """
+    Convert a PyTorch tensor image to a NumPy array.
+
+    Parameters:
+    - img (torch.tensor): Input image tensfor with shape [3xWxH] in the [0, 1] range.
+
+    Returns:
+    - np.ndarray: Converted image as a NumPy array.
+    """
     assert (
         len(img.shape) == 3
     ), "A single image should be passed to img_torch_to_cv2(...)."
@@ -16,18 +46,33 @@ def img_tensor_to_cv2(img: torch.tensor) -> np.ndarray:
     return img
 
 
-# loads a list in chunks
 def chunk_list(data, chunksize):
+    """
+    Load a list in chunks.
+
+    Parameters:
+    - data: Input list to be loaded in chunks.
+    - chunksize: Size of each chunk.
+
+    Yields:
+    - Chunked portions of the input list.
+    """
     for i in range(0, len(data), chunksize):
         end_step = min(i + chunksize, len(data) - 1)
         yield data[i:end_step]
 
 
-# TODO: move this to some config file, let it be overwritten by user argument
-EMBEDDING_COMPARISON_METHOD = ["l1", "norm_l1", "l2", "norm_l2", "cosine"][4]
-
-
 def embedding_distance(emb1, emb2):
+    """
+    Calculate the distance between two embeddings based on specified methods.
+
+    Parameters:
+    - emb1: First embedding.
+    - emb2: Second embedding.
+
+    Returns:
+    - Distance between the embeddings.
+    """
     if "norm" in EMBEDDING_COMPARISON_METHOD:
         emb1 = emb1 / np.linalg.norm(emb1)
         emb2 = emb2 / np.linalg.norm(emb2)

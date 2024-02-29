@@ -1,3 +1,18 @@
+"""
+File: evaluation_script.py
+
+This script handles the evaluation of datasets with different privacy mechanisms.
+
+Libraries and Modules:
+- CustomArgumentParser: Custom argument parser for handling script-specific arguments.
+- Evaluator: Class for evaluating datasets with different privacy mechanisms.
+- lfw_validation_evaluation, rank_k_evaluation, validation_evaluation: Functions for specific evaluation methodologies.
+- PrivacyMechanism: Abstract class for anonymization methods.
+
+Usage:
+- Execute this script to perform evaluation on datasets with specified privacy mechanisms and evaluation methodologies.
+"""
+
 from src.argument_parser import CustomArgumentParser
 from src.evaluation.evaluator import Evaluator
 from src.evaluation.lfw_validation_evaluation import lfw_validation_evaluation
@@ -5,6 +20,7 @@ from src.evaluation.rank_k_evaluation import (
     rank_k_evaluation,
 )
 from src.evaluation.validation_evaluation import validation_evaluation
+from src.privacy_mechanisms.pmech_suffix import PMechSuffix
 from src.privacy_mechanisms.privacy_mechanism import PrivacyMechanism
 
 if __name__ == "__main__":
@@ -23,6 +39,8 @@ if __name__ == "__main__":
             f"Anonymized Datasets//{args.dataset}_{p_mech_object.get_suffix()}"
         )
     else:
+        detected_suffix = args.anonymized_dataset.replace(args.dataset, "")
+        p_mech_object: PrivacyMechanism = PMechSuffix(detected_suffix)
         anon_dataset_path = f"Anonymized Datasets//{args.anonymized_dataset}"
 
     # Load in the datasets via Evaluator class

@@ -25,8 +25,15 @@ Privacy concerns related to facial recognition have become a critical aspect of 
 
 ## Features
 
-- Anonymization Mechanisms: Gaussian Blur, Uniform Blur, Pixel Differential Privacy, Test Mechanism
-- Evaluation Methodologies: Rank-k Evaluation, Validation Evaluation, LFW (Labeled Faces in the Wild) Validation Evaluation
+- Anonymization Mechanisms: 
+   - Gaussian Blur
+   - Uniform Blur
+   - Pixel DP
+   - Metric Privacy (SVD)
+- Evaluation Methodologies: 
+   - Rank-k Evaluation
+   - Validation Evaluation
+   - LFW (Labeled Faces in the Wild) Validation Evaluation
 - Customizable: Easily extendable with new privacy mechanisms and evaluation methodologies
 - Batch Processing: Efficiently processes datasets in batches for scalability
 - Detailed Documentation: Comprehensive documentation for each module and functionality
@@ -34,12 +41,32 @@ Privacy concerns related to facial recognition have become a critical aspect of 
 
 ## Requirements
 
-- Python 3.6 or higher
-- Additional requirements specified in `requirements.txt`
+- Python 3.10
+- Additional requirements are specified in `requirements.txt`.
+- Download the CelebA dataset (https://mmlab.ie.cuhk.edu.hk/projects/CelebA.html) and place at 'Datasets/CelebA/'.
+- Download the Labeled Faces in the Wild (LFW) dataset (https://vis-www.cs.umass.edu/lfw/) and place at 'Datasets/lfw' (we use the unaligned images, as our codebase performs face detection/ alignment).
+- While we evaluate on CelebA and lfw, some evaluation methodologies will accept any identity-labeled dataset.  See [Customization](#customization) for more details.
 
 ## Installation
 
-1. Clone the repository:
+Install requirements with:
+```
+pip install -r requirements.txt
+```
 
-   ```bash
-   git clone https://github.com/your_username/facial-recognition-anonymization.git
+By default, the requirements are configured to support CUDA-enabled GPUs.  If running on CPU, run the following commands after installing requirements:
+```
+pip uninstall onnxruntime-gpu
+pip install onnxruntime
+```
+
+We additionally provide a Dockerfile and docker-config.yaml to automatically create an environment.  To create an image and open a terminal within:
+```
+docker-compose run --rm faceanoneval
+```
+
+If on Windows, to have full terminal functionality:
+```
+winpty docker-compose run --rm faceanoneval
+```
+
