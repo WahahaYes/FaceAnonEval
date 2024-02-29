@@ -47,45 +47,106 @@ class SimpleMustacheMechanism(PrivacyMechanism):
         """
         super(SimpleMustacheMechanism, self).__init__()
 
+        # Load and configure Haar Cascade Classifiers
+        # Location of OpenCV Haar Cascade Classifiers
+        faceCascadeFile = cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+
+        # Build cv2 Cascade Classifiers
+        self.faceCascade = cv2.CascadeClassifier(faceCascadeFile)
+        self.noseCascade = cv2.CascadeClassifier("assets//haarcascade_mcs_nose.xml")
+
+        if self.noseCascade.empty():
+            raise IOError("Unable to load the nose cascade classifier xml file")
+
     def add_mustache(self, face: np.ndarray, mustache: np.ndarray) -> np.ndarray:
         """
         Add a mustache to a face image.
 
         Parameters:
-        - face (np.ndarry): Input face image.
+        - face (np.ndarray): Input face image.
         - mustache (np.ndarray): Mustache image with an alpha channel.
 
         Returns:
-        - np.ndarray: Face image with a mustache
+        - np.ndarray: Face image with a mustache.
         """
-        # Extract the alpha channel from the mustache image
-        alpha_channel = mustache[:, :, 3]
 
-        # Resize the mustache to fit the face
-        face_height, face_width = face.shape[:2]
-        mustache = cv2.resize(mustache, (face_width, int(0.2 * face_height)))
+        # Load and configure mustache (.png with alpha transparency)
+        orig_mask = mustache[:, :, 3]
+        orig_mask_inv = cv2.bitwise_not(orig_mask)
+        mustache = mustache[:, :, 0:3]
+        origMustacheHeight, origMustacheWidth = mustache.shape[:2]
 
         # Find the face region
         gray_face = cv2.cvtColor(face, cv2.COLOR_BGR2GRAY)
-        face_cascade = cv2.CascadeClassifier(
-            cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
-        )
-        faces = face_cascade.detectMultiScale(
-            gray_face, scaleFactor=1.3, minNeighbors=5
+        faces = self.faceCascade.detectMultiScale(
+            gray_face,
+            scaleFactor=1.1,
+            minNeighbors=5,
+            minSize=(30, 30),
+            flags=cv2.CASCADE_SCALE_IMAGE,
         )
 
         if len(faces) == 0:
             print("No faces detected.")
             return face
 
+        # Assumes only one face in image
         x, y, w, h = faces[0]
+        roi_gray = gray_face[y : y + h, x : x + w]
+        roi_color = face[y : y + h, x : x + w]
 
-        # Roughly adjust the coordinates to place the mustache just below the nose
-        mustache_y = int(y + 0.6 * h)
-        mustache_height, mustache_width = mustache.shape[:2]
+        # Detect a nose within the region bounded by face (i.e. the ROI)
+        nose = self.noseCascade.detectMultiScale(roi_gray)
 
-        # Calculate the region of interest for the mustache
-        roi = face[mustache_y : mustache_y + mustache_height, x : x + mustache_width]
+        if len(nose) == 0:
+            print("No nose detected.")
+            return face
+
+        for nx, ny, nw, nh in nose:
+            mustacheWidth = 3 * nw
+            mustacheHeight = mustacheWidth * origMustacheHeight / origMustacheWidth
+
+            x1 = int(nx - (mustacheWidth / 4))
+            x2 = int(nx + nw + (mustacheWidth / 4))
+            y1 = int(ny + nh - (mustacheHeight / 2))
+            y2 = int(ny + nh + (mustacheHeight / 2))
+
+            if x1 < 0:
+                x1 = 0
+            if y1 < 0:
+                y1 = 0
+            if x2 > w:
+                x2 = w
+            if y2 > h:
+                y2 = h
+
+            mustacheWidth = int(x2 - x1)
+            mustacheHeight = int(y2 - y1)
+
+            # Resize mustache and masks
+            mustache = cv2.resize(
+                mustache, (mustacheWidth, mustacheHeight), interpolation=cv2.INTER_AREA
+            )
+            mask = cv2.resize(
+                orig_mask, (mustacheWidth, mustacheHeight), interpolation=cv2.INTER_AREA
+            )
+            mask_inv = cv2.resize(
+                orig_mask_inv,
+                (mustacheWidth, mustacheHeight),
+                interpolation=cv2.INTER_AREA,
+            )
+
+            # Make mustache ROI from background equal to size of mustache image
+            roi = roi_color[y1:y2, x1:x2]
+            roi_bg = cv2.bitwise_and(roi, roi, mask=mask_inv)
+
+            # Make the region of the mustache from the mustache image
+            roi_fg = cv2.bitwise_and(mustache, mustache, mask=mask)
+
+            dst = cv2.add(roi_bg, roi_fg)
+
+            # Overlay the mustache on the face
+            roi_color[y1:y2, x1:x2] = dst
 
         return face
 
@@ -99,19 +160,25 @@ class SimpleMustacheMechanism(PrivacyMechanism):
         Returns:
         - torch.tensor: Processed torch tensor image with a mustache.
         """
-        # Convert torch tensor image to a numpy array
-        img_np = img_tensor_to_cv2(img)
 
         # Iterate over each face in the batch and add a mustache
-        for i in range(img_np.shape[0]):
-            face = img_np[i]
-            mustache_image_path = "../../assets/mustache.png"
+        for i in range(img.shape[0]):
+            # Convert torch tensor image to a numpy array
+            img_np = img_tensor_to_cv2(img[i])
+
+            face = img_np  # Assuming the image contains a single face
+            mustache_image_path = "assets/mustache.png"
             mustache = cv2.imread(mustache_image_path, cv2.IMREAD_UNCHANGED)
 
             # Add mustache to the face
-            img_np[i] = transforms.ToTensor()(img_np)
+            img_np = self.add_mustache(face, mustache)
 
-            return img_torch
+            # Convert the modified numpy array back to a torch tensor
+            img_torch = transforms.ToTensor()(img_np)
+
+            img[i] = img_torch
+
+        return img
 
     def get_suffix(self) -> str:
         """
