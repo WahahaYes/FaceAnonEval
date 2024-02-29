@@ -41,9 +41,9 @@ from pathlib import Path
 
 import cv2
 import insightface
-import onnxruntime
 from tqdm import tqdm
 
+from src import utils
 from src.utils import chunk_list
 
 
@@ -111,22 +111,7 @@ class Evaluator:
 
         self.batch_size = batch_size
 
-        # TODO: Look into this some more, onnxruntime outputs warnings but seems to be working fine.
-        onnxruntime.set_default_logger_severity(4)
-
-        print("Loading face detection model.")
-        self.detect_model = insightface.model_zoo.get_model(
-            os.path.expanduser("~//.insightface//models//buffalo_l//det_10g.onnx"),
-            download=True,
-        )
-        print("Loading facial recognition model.")
-        # The recognition model (Arcface with Resnet50 backbone), allows us to batch inputs
-        self.recog_model = insightface.model_zoo.get_model(
-            os.path.expanduser("~//.insightface//models//buffalo_l//w600k_r50.onnx"),
-            download=True,
-        )
-        self.detect_model.prepare(ctx_id=0, det_size=(640, 640), input_size=(640, 640))
-        self.recog_model.prepare(ctx_id=0)
+        self.detect_model, self.recog_model = utils.load_insightface_models()
 
         # We store the embeddings to be reused later, for efficiency
         if self.real_embeddings is None:
@@ -214,27 +199,10 @@ class Evaluator:
                 # compute and store the embeddings.
                 embeddings = self.recog_model.get_feat(imgs)
                 for i in range(len(embeddings)):
-                    embed_dict[self.generate_key(valid_paths[i])] = embeddings[i]
+                    embed_dict[generate_key(valid_paths[i])] = embeddings[i]
         if warn_counter > 0:
             print(f"Warning: {warn_counter} images' faces could not be detected.")
         return embed_dict
-
-    def generate_key(self, file_path: str):
-        """
-        Generate a unique key for a file path.
-
-        Parameter:
-        - file_path (str): The file path.
-
-        Returns:
-        - str: The generated key.
-        """
-        # will the folder + filename suffice?
-        f_path = Path(file_path)
-        # This avoids any issues with operating system file delimiters,
-        # but lets us still use file paths as keys
-        key = f"{f_path.parent.stem}___{f_path.stem}"
-        return key
 
     def get_real_embedding(self, file_path: str):
         """
@@ -246,7 +214,7 @@ class Evaluator:
         Returns:
         - Any: The real face embedding.
         """
-        return self.real_embeddings[self.generate_key(file_path)]
+        return self.real_embeddings[generate_key(file_path)]
 
     def get_anon_embedding(self, file_path: str):
         """
@@ -258,4 +226,22 @@ class Evaluator:
         Returns:
         - Any: The anonymized face embeddings.
         """
-        return self.anon_embeddings[self.generate_key(file_path)]
+        return self.anon_embeddings[generate_key(file_path)]
+
+
+def generate_key(file_path: str):
+    """
+    Generate a unique key for a file path.
+
+    Parameter:
+    - file_path (str): The file path.
+
+    Returns:
+    - str: The generated key.
+    """
+    # will the folder + filename suffice?
+    f_path = Path(file_path)
+    # This avoids any issues with operating system file delimiters,
+    # but lets us still use file paths as keys
+    key = f"{f_path.parent.stem}___{f_path.stem}"
+    return key

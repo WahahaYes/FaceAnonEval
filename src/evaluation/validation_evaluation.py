@@ -277,9 +277,11 @@ def report_results(
     )
 
     if args.anonymized_dataset is None:
-        out_path = f"Results//{args.evaluation_method}//{args.dataset}_{p_mech_object.get_suffix()}.csv"
+        out_path = f"Results//Privacy//{args.evaluation_method}//{args.dataset}_{p_mech_object.get_suffix()}.csv"
     else:
-        out_path = f"Results//{args.evaluation_method}//{args.anonymized_dataset}.csv"
+        out_path = (
+            f"Results//Privacy//{args.evaluation_method}//{args.anonymized_dataset}.csv"
+        )
     os.makedirs(Path(out_path).parent, exist_ok=True)
     print(f"Writing results to {out_path}.")
     df.to_csv(out_path)

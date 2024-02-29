@@ -22,6 +22,7 @@ easydict==1.12
     # via insightface
 filelock==3.13.1
     # via
+    #   huggingface-hub
     #   torch
     #   triton
 flatbuffers==23.5.26
@@ -29,7 +30,13 @@ flatbuffers==23.5.26
 fonttools==4.49.0
     # via matplotlib
 fsspec==2024.2.0
-    # via torch
+    # via
+    #   huggingface-hub
+    #   torch
+hsemotion==0.3.0
+    # via -r requirements.in
+huggingface-hub==0.21.3
+    # via timm
 humanfriendly==10.0
     # via coloredlogs
 idna==3.6
@@ -61,6 +68,7 @@ numpy==1.26.4
     #   -r requirements.in
     #   albumentations
     #   contourpy
+    #   hsemotion
     #   imageio
     #   insightface
     #   matplotlib
@@ -120,6 +128,7 @@ opencv-python-headless==4.9.0.80
     #   qudida
 packaging==23.2
     # via
+    #   huggingface-hub
     #   matplotlib
     #   onnxruntime-gpu
     #   scikit-image
@@ -127,6 +136,7 @@ pandas==2.2.1
     # via -r requirements.in
 pillow==10.2.0
     # via
+    #   hsemotion
     #   imageio
     #   insightface
     #   matplotlib
@@ -147,15 +157,22 @@ python-dateutil==2.8.2
 pytz==2024.1
     # via pandas
 pyyaml==6.0.1
-    # via albumentations
+    # via
+    #   albumentations
+    #   huggingface-hub
+    #   timm
 qudida==0.0.4
     # via albumentations
 requests==2.31.0
     # via
+    #   huggingface-hub
     #   insightface
     #   torchvision
+safetensors==0.4.2
+    # via timm
 scikit-image==0.22.0
     # via
+    #   -r requirements.in
     #   albumentations
     #   insightface
 scikit-learn==1.4.1.post1
@@ -178,20 +195,29 @@ threadpoolctl==3.3.0
     # via scikit-learn
 tifffile==2024.2.12
     # via scikit-image
+timm==0.9.16
+    # via hsemotion
 torch==2.1.2
     # via
     #   -r requirements.in
+    #   hsemotion
+    #   timm
     #   torchvision
 torchvision==0.16.2
-    # via -r requirements.in
+    # via
+    #   -r requirements.in
+    #   hsemotion
+    #   timm
 tqdm==4.65.0
     # via
     #   -r requirements.in
+    #   huggingface-hub
     #   insightface
 triton==2.1.0
     # via torch
 typing-extensions==4.10.0
     # via
+    #   huggingface-hub
     #   qudida
     #   torch
 tzdata==2024.1

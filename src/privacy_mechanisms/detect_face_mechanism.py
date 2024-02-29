@@ -1,10 +1,7 @@
-import os
-
-import insightface
 import numpy as np
-import onnxruntime
 from torchvision import transforms
 
+from src import utils
 from src.privacy_mechanisms.privacy_mechanism import PrivacyMechanism
 
 
@@ -16,16 +13,7 @@ class DetectFaceMechanism(PrivacyMechanism):
         super(DetectFaceMechanism, self).__init__()
         self.ToTensor = transforms.ToTensor()
 
-        print("Loading face detection model.")
-        onnxruntime.set_default_logger_severity(4)
-        self.detect_model = insightface.model_zoo.get_model(
-            os.path.expanduser("~//.insightface//models//buffalo_l//det_10g.onnx"),
-            download=True,
-        )
-        self.det_size = det_size
-        self.detect_model.prepare(
-            ctx_id=0, det_size=self.det_size, input_size=self.det_size
-        )
+        self.detect_model, _ = utils.load_insightface_models()
 
     def get_face_region(self, img: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
         # expects image to be in cv2 format
