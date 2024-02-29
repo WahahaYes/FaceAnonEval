@@ -1,21 +1,27 @@
 FROM pytorch/pytorch:2.1.2-cuda11.8-cudnn8-runtime
-ARG DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update -y && apt-get install -y \
-	git g++ gcc ffmpeg libsm6 libxext6 unzip wget
+RUN mkdir /root/app
+WORKDIR /root/app
+COPY ./assets ./assets
 
-# create a non-root user
-ARG USER_ID=1000
-RUN useradd -m --no-log-init --system  --uid ${USER_ID} appuser -g sudo
-RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers
-USER appuser
-WORKDIR /home/appuser
-ENV PATH="/home/appuser/.local/bin:${PATH}"
+# necessary linux packages
+RUN apt update
+RUN apt install build-essential -y
+RUN DEBIAN_FRONTEND=noninteractive apt install tzdata -y
+RUN apt install libgl1-mesa-glx libglib2.0-0 libsm6 libxrender1 libxext6 unzip wget -y
 
+# commands to copy insightface's pretrained models to the docker image
+RUN wget https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_l.zip -P /root/.insightface/models 
+RUN unzip /root/.insightface/models/buffalo_l.zip -d /root/.insightface/models/buffalo_l
+RUN rm /root/.insightface/models/buffalo_l.zip
 
-COPY --chown=appuser . /home/appuser
+RUN pip install --upgrade pip setuptools wheel
+
+COPY ./requirements.txt ./requirements.txt
 RUN pip install -r requirements.txt
 
-RUN wget https://github.com/deepinsight/insightface/releases/download/v0.7/buffalo_l.zip -P /home/appuser/.insightface/models && unzip /home/appuser/.insightface/models/buffalo_l.zip -d /home/appuser/.insightface/models/buffalo_l
+# to attach to image:
+# docker-compose run --rm faceanoneval
 
-
+# if on windows (gives a terminal interface):
+# winpty docker-compose run --rm faceanoneval

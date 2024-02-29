@@ -1,0 +1,10 @@
+services:
+
+  faceanoneval:
+    build: .
+    volumes:
+      - "./Datasets:/root/app/Datasets:rw"
+      - "./Anonymized Datasets:/root/app/Anonymized Datasets:rw"
+      - "./src:/root/app/src:rw"
+      - "./evaluate_mechanism.py:/root/app/evaluate_mechanism.py:rw"
+      - "./process_dataset.py:/root/app/process_dataset.py:rw"
