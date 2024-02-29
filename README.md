@@ -54,7 +54,7 @@ Install requirements with:
 pip install -r requirements.txt
 ```
 
-By default, the requirements are configured to support CUDA-enabled GPUs.  If running on CPU, run the following commands after installing requirements:
+By default, the requirements are configured to support CUDA-enabled GPUs.  If running on CPU, run the following commands after installing requirements (these lines can additionally be uncommented from the Dockerfile to automatically generate CPU-ready Docker images):
 ```
 pip uninstall onnxruntime-gpu
 pip install onnxruntime
