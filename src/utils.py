@@ -97,13 +97,13 @@ def load_insightface_models():
 
     print("Loading face detection model.")
     detect_model = insightface.model_zoo.get_model(
-        os.path.expanduser("assets//buffalo_l//det_10g.onnx"),
+        os.path.expanduser("~//.insightface//models//buffalo_l//det_10g.onnx"),
         download=True,
     )
     print("Loading facial recognition model.")
     # The recognition model (Arcface with Resnet50 backbone), allows us to batch inputs
     recog_model = insightface.model_zoo.get_model(
-        os.path.expanduser("assets//buffalo_l//w600k_r50.onnx"),
+        os.path.expanduser("~//.insightface//models//buffalo_l//w600k_r50.onnx"),
         download=True,
     )
     detect_model.prepare(ctx_id=0, det_size=(640, 640), input_size=(640, 640))
