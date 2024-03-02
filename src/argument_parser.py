@@ -25,10 +25,9 @@ Usage:
 - Retrieve the PrivacyMechanism object using `get_privacy_mech_object` method.
 
 Note:
-- The custom argument parser handles arguments for processing and evaluating datasets with 
+- The custom argument parser handles arguments for processing and evaluating datasets with
   different privacy mechanisms and evaluation methodologies.
 """
-
 
 import argparse
 from typing import Iterator
@@ -42,6 +41,7 @@ from src.privacy_mechanisms.metric_privacy_mechanism import MetricPrivacyMechani
 from src.privacy_mechanisms.pixel_dp_mechanism import PixelDPMechanism
 from src.privacy_mechanisms.privacy_mechanism import PrivacyMechanism
 from src.privacy_mechanisms.simple_mustache_mechanism import SimpleMustacheMechanism
+from src.privacy_mechanisms.simswap_mechanism import SimswapMechanism
 from src.privacy_mechanisms.test_mechanism import TestMechanism
 from src.privacy_mechanisms.uniform_blur_mechanism import UniformBlurMechanism
 
@@ -117,6 +117,7 @@ class CustomArgumentParser:
                 "pixel_dp",
                 "metric_privacy",
                 "simple_mustache",
+                "simswap",
             ],
             default="uniform_blur",
             type=str,
@@ -160,6 +161,13 @@ class CustomArgumentParser:
             type=int,
             help="In metric privacy, the number of singular values to "
             "keep and privatize before reconstruction.",
+        )
+        parser.add_argument(
+            "--faceswap_strategy",
+            default="random",
+            type=str,
+            choices=["random"],
+            help="For faceswap mechanisms, how to sample the identity faces.",
         )
         # --------------------------------------------------------------------------
         # arguments only relevant for processing script
@@ -272,6 +280,11 @@ class CustomArgumentParser:
                 )
             case "simple_mustache":
                 p_mech_object = SimpleMustacheMechanism()
+            case "simswap":
+                p_mech_object = SimswapMechanism(
+                    faceswap_strategy=self.args.faceswap_strategy,
+                    random_seed=self.args.random_seed,
+                )
             case _:
                 raise Exception(
                     f"Invalid privacy operation argument ({self.args.privacy_mechanism})."

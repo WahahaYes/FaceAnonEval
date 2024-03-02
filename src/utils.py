@@ -28,6 +28,8 @@ import torch
 
 from src.config import EMBEDDING_COMPARISON_METHOD
 
+DETECT_MODEL, RECOGNITION_MODEL = None, None
+
 
 def img_tensor_to_cv2(img: torch.tensor) -> np.ndarray:
     """
@@ -92,21 +94,88 @@ def embedding_distance(emb1, emb2):
 
 
 def load_insightface_models():
+    global DETECT_MODEL, RECOGNITION_MODEL
     # this line suppresses warnings (was experiencing weird thread allocation warnings)
     onnxruntime.set_default_logger_severity(4)
 
-    print("Loading face detection model.")
-    detect_model = insightface.model_zoo.get_model(
-        os.path.expanduser("~//.insightface//models//buffalo_l//det_10g.onnx"),
-        download=True,
-    )
-    print("Loading facial recognition model.")
-    # The recognition model (Arcface with Resnet50 backbone), allows us to batch inputs
-    recog_model = insightface.model_zoo.get_model(
-        os.path.expanduser("~//.insightface//models//buffalo_l//w600k_r50.onnx"),
-        download=True,
-    )
-    detect_model.prepare(ctx_id=0, det_size=(640, 640), input_size=(640, 640))
-    recog_model.prepare(ctx_id=0)
+    if DETECT_MODEL is None:
+        print("Loading face detection model.")
+        DETECT_MODEL = insightface.model_zoo.get_model(
+            os.path.expanduser("~//.insightface//models//buffalo_l//det_10g.onnx"),
+            download=True,
+        )
+        DETECT_MODEL.prepare(ctx_id=0, det_size=(640, 640), input_size=(640, 640))
+    if RECOGNITION_MODEL is None:
+        print("Loading facial recognition model.")
+        # The recognition model (Arcface with Resnet50 backbone), allows us to batch inputs
+        RECOGNITION_MODEL = insightface.model_zoo.get_model(
+            os.path.expanduser("~//.insightface//models//buffalo_l//w600k_r50.onnx"),
+            download=True,
+        )
+        RECOGNITION_MODEL.prepare(ctx_id=0)
 
-    return detect_model, recog_model
+    return DETECT_MODEL, RECOGNITION_MODEL
+
+
+def padded_crop(img, bbox, padding):
+    if padding is int:
+        padding = (padding, padding)
+    # pad the bbox
+    # TODO: make method to pad outside regions with zeros
+
+    h0 = bbox[0] - padding[0]
+    w0 = bbox[1] - padding[1]
+    h1 = bbox[2] + padding[0]
+    w1 = bbox[3] + padding[1]
+
+    bbox[0] = max(0, h0)
+    bbox[1] = max(0, w0)
+    bbox[2] = min(h1, img.shape[1])
+    bbox[3] = min(w1, img.shape[0])
+
+    face_cv2 = img[bbox[1] : bbox[3], bbox[0] : bbox[2], :]
+    if h0 < 0:
+        face_cv2 = np.concatenate(
+            [
+                np.zeros(
+                    [face_cv2.shape[0], -h0, face_cv2.shape[2]], dtype=face_cv2.dtype
+                ),
+                face_cv2,
+            ],
+            axis=1,
+        )
+    if h1 > img.shape[1]:
+        face_cv2 = np.concatenate(
+            [
+                face_cv2,
+                np.zeros(
+                    [face_cv2.shape[0], h1 - img.shape[1], face_cv2.shape[2]],
+                    dtype=face_cv2.dtype,
+                ),
+            ],
+            axis=1,
+        )
+
+    if w0 < 0:
+        face_cv2 = np.concatenate(
+            [
+                np.zeros(
+                    [-w0, face_cv2.shape[1], face_cv2.shape[2]], dtype=face_cv2.dtype
+                ),
+                face_cv2,
+            ],
+            axis=0,
+        )
+    if w1 > img.shape[0]:
+        face_cv2 = np.concatenate(
+            [
+                face_cv2,
+                np.zeros(
+                    [w1 - img.shape[0], face_cv2.shape[1], face_cv2.shape[2]],
+                    dtype=face_cv2.dtype,
+                ),
+            ],
+            axis=0,
+        )
+
+    return face_cv2
