@@ -166,7 +166,7 @@ class CustomArgumentParser:
             "--faceswap_strategy",
             default="random",
             type=str,
-            choices=["random"],
+            choices=["random", "all_to_one"],
             help="For faceswap mechanisms, how to sample the identity faces.",
         )
         # --------------------------------------------------------------------------

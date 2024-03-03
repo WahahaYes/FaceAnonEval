@@ -26,6 +26,12 @@ class SimswapMechanism(DetectFaceMechanism):
             self.id_face_paths = glob.glob(
                 "Datasets//CelebA//**//*.jpg", recursive=True
             )
+        if self.faceswap_strategy == "all_to_one":
+            self.id_face_paths = glob.glob(
+                "Datasets//CelebA//**//*.jpg", recursive=True
+            )
+            self.id_face_path = np.random.choice(self.id_face_paths)
+            self.id_face_cv2 = None
 
     def process(self, img: torch.tensor) -> torch.tensor:
         # replacing only the face region
@@ -76,3 +82,24 @@ class SimswapMechanism(DetectFaceMechanism):
             except Exception as e:
                 print(f"Warning: Did not find face in potential ID face image - {e}")
                 return self.get_identity_face()
+
+        elif self.faceswap_strategy == "all_to_one":
+            if self.id_face_cv2 is None:
+                img_cv2 = cv2.imread(self.id_face_path)
+                try:
+                    _, bbox = self.get_face_region(img_cv2)
+
+                    padding = (
+                        int((bbox[2] - bbox[0]) * self.pad_ratio),
+                        int((bbox[3] - bbox[1]) * self.pad_ratio),
+                    )
+                    self.id_face_cv2 = utils.padded_crop(img_cv2, bbox, padding=padding)
+                    return self.id_face_cv2
+                except Exception as e:
+                    print(
+                        f"Warning: Did not find face in potential ID face image, reselecting all_to_one face - {e}"
+                    )
+                    self.id_face_path = np.random.choice(self.id_face_paths)
+                    return self.get_identity_face()
+            else:
+                return self.id_face_cv2
