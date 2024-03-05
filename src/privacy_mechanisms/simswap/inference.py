@@ -56,7 +56,6 @@ def inference(attr_img_cv2, id_img_cv2):
         img_id_resize = img_id_resize.cuda()
     id_embedding = model.netArc(img_id_resize)
     id_embedding = F.normalize(id_embedding, p=2, dim=1)
-    # id_embedding = torch.rand_like(id_embedding)
 
     attr_img = _totensor(cv2.cvtColor(attr_img_cv2, cv2.COLOR_BGR2RGB))[None, ...]
     if torch.cuda.is_available():

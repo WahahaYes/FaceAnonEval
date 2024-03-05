@@ -37,6 +37,7 @@ from src.dataset.dataset_identity_lookup import DatasetIdentityLookup
 from src.dataset.face_dataset import FaceDataset, dataset_iterator
 from src.dataset.lfw_identity_lookup import LFWIdentityLookup
 from src.privacy_mechanisms.gaussian_blur_mechanism import GaussianBlurMechanism
+from src.privacy_mechanisms.identity_dp_mechanism import IdentityDPMechanism
 from src.privacy_mechanisms.metric_privacy_mechanism import MetricPrivacyMechanism
 from src.privacy_mechanisms.pixel_dp_mechanism import PixelDPMechanism
 from src.privacy_mechanisms.privacy_mechanism import PrivacyMechanism
@@ -118,6 +119,7 @@ class CustomArgumentParser:
                 "metric_privacy",
                 "simple_mustache",
                 "simswap",
+                "identity_dp",
             ],
             default="uniform_blur",
             type=str,
@@ -283,6 +285,11 @@ class CustomArgumentParser:
             case "simswap":
                 p_mech_object = SimswapMechanism(
                     faceswap_strategy=self.args.faceswap_strategy,
+                    random_seed=self.args.random_seed,
+                )
+            case "identity_dp":
+                p_mech_object = IdentityDPMechanism(
+                    epsilon=self.args.dp_epsilon,
                     random_seed=self.args.random_seed,
                 )
             case _:
