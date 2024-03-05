@@ -16,7 +16,8 @@ RUN unzip /root/.insightface/models/buffalo_l.zip -d /root/.insightface/models/b
 RUN rm /root/.insightface/models/buffalo_l.zip
 
 # Copy HSEmotion model to docker image
-RUN wget https://github.com/av-savchenko/face-emotion-recognition/blob/main/models/affectnet_emotions/enet_b0_8_best_afew.pt?raw=true -P /root/.hsemotion -O enet_b0_8_best_afew.pt
+RUN wget https://github.com/av-savchenko/face-emotion-recognition/blob/main/models/affectnet_emotions/enet_b0_8_best_afew.pt?raw=true -P /root/.hsemotion
+RUN mv /root/.hsemotion/enet_b0_8_best_afew.pt?raw=true /root/.hsemotion/enet_b0_8_best_afew.pt
 
 # Install dependencies from pip
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel
