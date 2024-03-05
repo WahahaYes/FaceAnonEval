@@ -1,16 +1,14 @@
-import os
-
 import cv2
 import torch
 import torch.nn.functional as F
 from PIL import Image
 from torchvision import transforms
 
+from src.privacy_mechanisms.simswap.__init__ import SIMSWAP_PATH_HEAD
 from src.privacy_mechanisms.simswap.models.fs_model import fsModel
 from src.privacy_mechanisms.simswap.options.test_options import TestOptions
 from src.utils import img_tensor_to_cv2
 
-SIMSWAP_PATH_HEAD = os.path.dirname(os.path.realpath(__file__))
 SIMSWAP_MODEL = None
 
 transformer_Arcface = transforms.Compose(
@@ -32,7 +30,6 @@ def instantiate_model():
     if SIMSWAP_MODEL is None:
         model = fsModel()
         opt = TestOptions().parse()
-        opt.Arc_path = f"{SIMSWAP_PATH_HEAD}//arcface_model//arcface_checkpoint.tar"
         opt.no_simswaplogo = True
         opt.checkpoints_dir = f"{SIMSWAP_PATH_HEAD}//checkpoints"
         opt.crop_size = 224
