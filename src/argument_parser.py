@@ -44,6 +44,7 @@ from src.privacy_mechanisms.privacy_mechanism import PrivacyMechanism
 from src.privacy_mechanisms.simple_mustache_mechanism import SimpleMustacheMechanism
 from src.privacy_mechanisms.test_mechanism import TestMechanism
 from src.privacy_mechanisms.uniform_blur_mechanism import UniformBlurMechanism
+from src.privacy_mechanisms.pignose_mechanism import PignoseMechanism
 
 
 class CustomArgumentParser:
@@ -117,6 +118,7 @@ class CustomArgumentParser:
                 "pixel_dp",
                 "metric_privacy",
                 "simple_mustache",
+                "pignose"
             ],
             default="uniform_blur",
             type=str,
@@ -272,6 +274,8 @@ class CustomArgumentParser:
                 )
             case "simple_mustache":
                 p_mech_object = SimpleMustacheMechanism()
+            case "pignose":
+                p_mech_object = PignoseMechanism()
             case _:
                 raise Exception(
                     f"Invalid privacy operation argument ({self.args.privacy_mechanism})."
