@@ -44,7 +44,7 @@ class IdentityDPMechanism(DetectFaceMechanism):
 
                 img[i] = self.ToTensor(img_cv2)
             except Exception as e:
-                print(f"Warning: Skipping a face: {e}")
+                print(f"Warning: Skipping a face: {e}", flush=True)
                 pass
 
         return img
