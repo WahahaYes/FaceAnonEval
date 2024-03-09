@@ -115,19 +115,20 @@ def inference_identity_dp(img_cv2, epsilon: float = 1.0):
 
     # add Laplacian noise to identity embeddings
     sensitivity = calculate_sensitivity()
-    # sensitivity["sensitivity"] = sensitivity["sensitivity"] / 512
+    sens = sensitivity["sensitivity"] ##  / 512.0
     noise = torch.from_numpy(
         np.random.laplace(
-            loc=0, scale=sensitivity["sensitivity"] / epsilon, size=id_embedding.shape
+            loc=0, scale=sens / epsilon, size=id_embedding.shape
         ),
     ).to(device=id_embedding.device, dtype=id_embedding.dtype)
+    print(f"noise std: {torch.std(noise)}")
     id_embedding = id_embedding + noise
-    # clamp to the test set's maximum range
-    id_embedding = torch.clamp(
-        id_embedding, min=sensitivity["min"], max=sensitivity["max"]
-    )
-    # normalize to SimSwap's expected format - this is post-process so should be okay?
-    # id_embedding = F.normalize(id_embedding, p=2, dim=1)
+    # # clamp to the test set's maximum range
+    # id_embedding = torch.clamp(
+    #     id_embedding, min=sensitivity["min"], max=sensitivity["max"]
+    # )
+    # ... or normalize to SimSwap's expected format - this is post-process so should be okay?
+    id_embedding = F.normalize(id_embedding, p=2, dim=1)
 
     attr_img_cv2 = cv2.resize(img_cv2, dsize=(224, 224))
     attr_img = _totensor(cv2.cvtColor(attr_img_cv2, cv2.COLOR_BGR2RGB))[None, ...]
