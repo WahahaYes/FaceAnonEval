@@ -18,9 +18,8 @@ class MetricPrivacyMechanism(DetectFaceMechanism):
         epsilon: float = 1,
         k: int = 4,
         random_seed: int = 69,
-        det_size: tuple = (640, 640),
     ) -> None:
-        super(MetricPrivacyMechanism, self).__init__(det_size=det_size)
+        super(MetricPrivacyMechanism, self).__init__()
         self.epsilon = epsilon
         self.k = k
         np.random.seed(seed=random_seed)

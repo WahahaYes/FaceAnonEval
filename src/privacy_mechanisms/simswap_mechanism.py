@@ -15,9 +15,8 @@ class SimswapMechanism(DetectFaceMechanism):
         self,
         faceswap_strategy: str = "random",
         random_seed: int = 69,
-        det_size: tuple = (640, 640),
     ) -> None:
-        super(SimswapMechanism, self).__init__(det_size=det_size)
+        super(SimswapMechanism, self).__init__()
         self.faceswap_strategy = faceswap_strategy
         self.pad_ratio = 0.15
         self.random_seed = random_seed

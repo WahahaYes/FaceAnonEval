@@ -7,9 +7,7 @@ from src.privacy_mechanisms.privacy_mechanism import PrivacyMechanism
 
 # Subclass of PrivacyMechanism that loads the insightface face detection model for use
 class DetectFaceMechanism(PrivacyMechanism):
-    def __init__(
-        self, epsilon: float = 1, b: int = 1, det_size: tuple = (640, 640)
-    ) -> None:
+    def __init__(self) -> None:
         super(DetectFaceMechanism, self).__init__()
         self.ToTensor = transforms.ToTensor()
 

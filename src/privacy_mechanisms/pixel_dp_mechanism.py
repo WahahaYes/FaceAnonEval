@@ -36,7 +36,6 @@ class PixelDPMechanism(DetectFaceMechanism):
         epsilon: float = 1,
         b: int = 1,
         random_seed: int = 69,
-        det_size: tuple = (640, 640),
     ) -> None:
         """
         Initialize the PixelDPMechanism.
@@ -47,7 +46,7 @@ class PixelDPMechanism(DetectFaceMechanism):
         - random_seed (int): seed for the random number generator for repoducibility (default is 69).
         - det_size (tuple): Detection size for insightface face detector (default is (640, 640)).
         """
-        super(PixelDPMechanism, self).__init__(det_size=det_size)
+        super(PixelDPMechanism, self).__init__()
         self.epsilon = epsilon
         self.b = b
         np.random.seed(seed=random_seed)

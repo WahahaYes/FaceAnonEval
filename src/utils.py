@@ -90,7 +90,11 @@ def embedding_distance(emb1, emb2):
         return np.linalg.norm(emb1 - emb2)
 
     if "cosine" in EMBEDDING_COMPARISON_METHOD:
-        return 1 - np.dot(emb1, emb2) / (np.linalg.norm(emb1) * np.linalg.norm(emb2))
+        return 1 - cosine_similarity_numpy(emb1, emb2)
+
+
+def cosine_similarity_numpy(emb1, emb2):
+    return np.dot(emb1, emb2) / (np.linalg.norm(emb1) * np.linalg.norm(emb2))
 
 
 def load_insightface_models():

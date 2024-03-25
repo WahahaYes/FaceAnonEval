@@ -13,9 +13,8 @@ class IdentityDPMechanism(DetectFaceMechanism):
         self,
         epsilon: float = 1.0,
         random_seed: int = 69,
-        det_size: tuple = (640, 640),
     ) -> None:
-        super(IdentityDPMechanism, self).__init__(det_size=det_size)
+        super(IdentityDPMechanism, self).__init__()
         self.epsilon = epsilon
         self.pad_ratio = 0.15
         np.random.seed(seed=random_seed)
