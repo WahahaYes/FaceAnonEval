@@ -111,4 +111,4 @@ class PixelDPMechanism(DetectFaceMechanism):
         Returns:
         - str: A string representing the privacy mechanism.
         """
-        return f"pixel_dp_{self.epsilon}_b{self.b}"
+        return f"pixel_dp_eps{self.epsilon}_b{self.b}"

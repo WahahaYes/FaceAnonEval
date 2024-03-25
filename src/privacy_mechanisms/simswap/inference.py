@@ -34,6 +34,8 @@ def instantiate_model():
         opt.checkpoints_dir = f"{SIMSWAP_PATH_HEAD}//checkpoints"
         opt.crop_size = 224
         model.initialize(opt)
+        if torch.cuda.is_available():
+            model = model.cuda()
         model.eval()
         SIMSWAP_MODEL = model
 
@@ -56,12 +58,14 @@ def inference(attr_img_cv2, id_img_cv2):
         img_id_resize = img_id_resize.cuda()
     id_embedding = model.netArc(img_id_resize)
     id_embedding = F.normalize(id_embedding, p=2, dim=1)
-    # id_embedding = torch.rand_like(id_embedding)
 
     attr_img = _totensor(cv2.cvtColor(attr_img_cv2, cv2.COLOR_BGR2RGB))[None, ...]
     if torch.cuda.is_available():
         attr_img = attr_img.cuda()
         id_embedding = id_embedding.cuda()
+    else:
+        attr_img = attr_img.float()
+        id_embedding = id_embedding.float()
 
     with torch.no_grad():
         swap_result = model(None, attr_img, id_embedding, None, True)[0]

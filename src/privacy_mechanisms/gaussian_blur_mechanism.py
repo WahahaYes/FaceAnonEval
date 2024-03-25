@@ -74,4 +74,4 @@ class GaussianBlurMechanism(PrivacyMechanism):
         Returns:
         - str: A string representing the privacy mechanism with kernal size information.
         """
-        return f"gaussian_blur_{self.kernel}"
+        return f"gaussian_blur_k{self.kernel}"

@@ -74,4 +74,4 @@ class UniformBlurMechanism(PrivacyMechanism):
         Returns:
         - str: A string representing the suffix.
         """
-        return f"uniform_blur_{self.kernel}"
+        return f"uniform_blur_k{self.kernel}"
