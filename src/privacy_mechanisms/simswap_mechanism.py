@@ -20,7 +20,8 @@ class SimswapMechanism(DetectFaceMechanism):
         super(SimswapMechanism, self).__init__(det_size=det_size)
         self.faceswap_strategy = faceswap_strategy
         self.pad_ratio = 0.15
-        np.random.seed(seed=random_seed)
+        self.random_seed = random_seed
+        np.random.seed(seed=self.random_seed)
 
         if self.faceswap_strategy == "random":
             self.id_face_paths = glob.glob(
@@ -64,7 +65,7 @@ class SimswapMechanism(DetectFaceMechanism):
         return img
 
     def get_suffix(self) -> str:
-        return f"simswap_{self.faceswap_strategy}"
+        return f"simswap_{self.faceswap_strategy}_seed{self.random_seed}"
 
     def get_identity_face(self):
         if self.faceswap_strategy == "random":

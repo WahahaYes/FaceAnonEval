@@ -74,7 +74,7 @@ class MetricPrivacyMechanism(DetectFaceMechanism):
         return img
 
     def get_suffix(self) -> str:
-        return f"metric_privacy_{self.epsilon}_k{self.k}"
+        return f"metric_privacy_eps{self.epsilon}_k{self.k}"
 
     def estimate_sensitivities(self):
         # we pull from CelebA to estimate the sensitivity of each SVD singular value

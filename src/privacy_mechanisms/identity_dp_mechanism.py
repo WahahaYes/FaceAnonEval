@@ -50,4 +50,4 @@ class IdentityDPMechanism(DetectFaceMechanism):
         return img
 
     def get_suffix(self) -> str:
-        return f"identity_dp_{self.epsilon}"
+        return f"identity_dp_eps{self.epsilon}"
