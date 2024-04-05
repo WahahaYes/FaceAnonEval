@@ -4,24 +4,66 @@ import os
 from pathlib import Path
 
 import cv2
+import numpy as np
 import pandas as pd
-from deepface import DeepFace
+from deepface.extendedmodels import Age, Emotion, Gender, Race
 from skimage.metrics import structural_similarity as ssim
 from tqdm import tqdm
 
+import src.utils as utils
 from src.evaluation.evaluator import generate_key
 from src.privacy_mechanisms.privacy_mechanism import PrivacyMechanism
+
+AGE_MODEL, RACE_MODEL, GENDER_MODEL, EMOTION_MODEL, detect_model = (
+    None,
+    None,
+    None,
+    None,
+    None,
+)
+
+
+def initialize_models():
+    global AGE_MODEL, RACE_MODEL, GENDER_MODEL, EMOTION_MODEL, detect_model
+    AGE_MODEL = Age.ApparentAgeClient()
+    RACE_MODEL = Race.RaceClient()
+    GENDER_MODEL = Gender.GenderClient()
+    EMOTION_MODEL = Emotion.EmotionClient()
+    detect_model, _ = utils.load_insightface_models()
+
+
+def preprocess_face(path: str):
+    img = cv2.imread(path)
+    bboxes, kpss = detect_model.detect(img)
+    if len(bboxes) == 0:
+        # if a face isn't detected, we will pass the unaltered image through
+        return img
+    bbox = bboxes[0]
+    h0, w0, h1, w1 = int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])
+    crop_img = img[w0:w1, h0:h1, :]
+    crop_img = cv2.resize(crop_img, (224, 224))
+    return crop_img
 
 
 def collect_utility_metrics(img_paths: list) -> dict:
     outer_dict = dict()
 
     for path in tqdm(img_paths, desc="DeepFace analysis"):
-        inner_dict = DeepFace.analyze(
-            img_path=path, actions=["age", "gender", "race", "emotion"]
-        )
-        img = cv2.imread(path)
-        grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        inner_dict = dict()
+        face_img = preprocess_face(path)
+        age_features = AGE_MODEL.predict(face_img[None, :, :, :])
+        race_features = RACE_MODEL.predict(face_img[None, :, :, :])
+        gender_features = GENDER_MODEL.predict(face_img[None, :, :, :])
+        emotion_features = EMOTION_MODEL.predict(face_img[None, :, :, :])
+        grey = cv2.cvtColor(face_img, cv2.COLOR_BGR2GRAY)
+
+        inner_dict["age"] = age_features
+        inner_dict["race_features"] = race_features
+        inner_dict["race"] = Race.labels[np.argmax(race_features)]
+        inner_dict["gender_features"] = gender_features
+        inner_dict["gender"] = Gender.labels[np.argmax(gender_features)]
+        inner_dict["emotion_features"] = emotion_features
+        inner_dict["emotion"] = Emotion.labels[np.argmax(emotion_features)]
         inner_dict["greyscale"] = grey
         outer_dict[path] = inner_dict
 
@@ -33,6 +75,7 @@ def utility_evaluation(
     args: argparse.Namespace,
 ):
     print("================ Utility Evaluation ================")
+    initialize_models()
 
     # need to compute a list of anonymized face images, then get the corresponding real faces
     if args.anonymized_dataset is None:

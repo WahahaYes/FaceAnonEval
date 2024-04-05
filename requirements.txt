@@ -9,3 +9,6 @@ scikit-image==0.22.0
 torch==2.2.1
 torchvision==0.17.1
 tqdm==4.65.0
+deepface
+tf-keras
+tensorflow==2.12.1
