@@ -49,23 +49,26 @@ def collect_utility_metrics(img_paths: list) -> dict:
     outer_dict = dict()
 
     for path in tqdm(img_paths, desc="DeepFace analysis"):
-        inner_dict = dict()
-        face_img = preprocess_face(path)
-        age_features = AGE_MODEL.predict(face_img[None, :, :, :])
-        race_features = RACE_MODEL.predict(face_img[None, :, :, :])
-        gender_features = GENDER_MODEL.predict(face_img[None, :, :, :])
-        emotion_features = EMOTION_MODEL.predict(face_img[None, :, :, :])
-        grey = cv2.cvtColor(face_img, cv2.COLOR_BGR2GRAY)
+        try:
+            inner_dict = dict()
+            face_img = preprocess_face(path)
+            age_features = AGE_MODEL.predict(face_img[None, :, :, :])
+            race_features = RACE_MODEL.predict(face_img[None, :, :, :])
+            gender_features = GENDER_MODEL.predict(face_img[None, :, :, :])
+            emotion_features = EMOTION_MODEL.predict(face_img[None, :, :, :])
+            grey = cv2.cvtColor(face_img, cv2.COLOR_BGR2GRAY)
 
-        inner_dict["age"] = age_features
-        inner_dict["race_features"] = race_features
-        inner_dict["race"] = Race.labels[np.argmax(race_features)]
-        inner_dict["gender_features"] = gender_features
-        inner_dict["gender"] = Gender.labels[np.argmax(gender_features)]
-        inner_dict["emotion_features"] = emotion_features
-        inner_dict["emotion"] = Emotion.labels[np.argmax(emotion_features)]
-        inner_dict["greyscale"] = grey
-        outer_dict[path] = inner_dict
+            inner_dict["age"] = age_features
+            inner_dict["race_features"] = race_features
+            inner_dict["race"] = Race.labels[np.argmax(race_features)]
+            inner_dict["gender_features"] = gender_features
+            inner_dict["gender"] = Gender.labels[np.argmax(gender_features)]
+            inner_dict["emotion_features"] = emotion_features
+            inner_dict["emotion"] = Emotion.labels[np.argmax(emotion_features)]
+            inner_dict["greyscale"] = grey
+            outer_dict[path] = inner_dict
+        except Exception as e:
+            print(f"Warning: face skipped {path} - {e}")
 
     return outer_dict
 
@@ -113,8 +116,11 @@ def utility_evaluation(
         desc="Analyzing utility pair-wise...",
         total=len(anon_paths),
     ):
-        this_anon_dict = anon_dict[a_p]
-        this_real_dict = real_dict[r_p]
+        try:
+            this_anon_dict = anon_dict[a_p]
+            this_real_dict = real_dict[r_p]
+        except:
+            print(f"Warning: skipping {a_p}.")
 
         ssim_score = ssim(this_anon_dict["greyscale"], this_real_dict["greyscale"])
         emotion_score = (
