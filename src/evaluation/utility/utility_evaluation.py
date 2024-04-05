@@ -12,18 +12,24 @@ from tqdm import tqdm
 from src.evaluation.evaluator import generate_key
 from src.privacy_mechanisms.privacy_mechanism import PrivacyMechanism
 
+import tensorflow as tf
+print(f"GPU? {tf.test.is_gpu_available()}")
+
 
 def collect_utility_metrics(img_paths: list) -> dict:
     outer_dict = dict()
 
     for path in tqdm(img_paths, desc="DeepFace analysis"):
-        inner_dict = DeepFace.analyze(
-            img_path=path, actions=["age", "gender", "race", "emotion"]
-        )
-        img = cv2.imread(path)
-        grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        inner_dict["greyscale"] = grey
-        outer_dict[path] = inner_dict
+        try:
+            inner_dict = DeepFace.analyze(
+                img_path=path, actions=["age", "gender", "race", "emotion"], enforce_detection=False, silent=True,
+            )[0]
+            img = cv2.imread(path)
+            grey = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            inner_dict["greyscale"] = grey
+            outer_dict[path] = inner_dict
+        except:
+            print("Oh no!")
 
     return outer_dict
 
@@ -70,8 +76,11 @@ def utility_evaluation(
         desc="Analyzing utility pair-wise...",
         total=len(anon_paths),
     ):
-        this_anon_dict = anon_dict[a_p]
-        this_real_dict = real_dict[r_p]
+        try:
+            this_anon_dict = anon_dict[a_p]
+            this_real_dict = real_dict[r_p]
+        except:
+            print(f"Warning: skipping {a_p}.")
 
         ssim_score = ssim(this_anon_dict["greyscale"], this_real_dict["greyscale"])
         emotion_score = (
