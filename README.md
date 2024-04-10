@@ -126,7 +126,7 @@ For any questions, issues, or feedback, please feel free to reach out to us via 
 Here are the citations:
 ```bibtex
 # TODO: lastname_word_year
-@inproceedings{DBLP:conf/mm/ChenCNG20,
+@inproceedings{Chen_SimSwap_2020,
   author    = {Renwang Chen and
                Xuanhong Chen and
                Bingbing Ni and
@@ -138,11 +138,18 @@ Here are the citations:
 }
 
 
-@inproceedings{deng2018arcface,
-   title={ArcFace: Additive Angular Margin Loss for Deep Face Recognition},
-   author={Deng, Jiankang and Guo, Jia and Niannan, Xue and Zafeiriou, Stefanos},
-   booktitle={CVPR},
-   year={2019}
+@inproceedings{Deng_ArcFace_2019,
+  title    = {ArcFace: Additive Angular Margin Loss for Deep Face Recognition},
+  author   = {Deng, 
+               Jiankang and 
+               Guo, 
+               Jia and 
+               Niannan, 
+               Xue and 
+               Zafeiriou, 
+               Stefanos},
+  booktitle = {CVPR},
+  year      = {2019}
 }
 
 @inproceedings{Savchenko_2022_CVPRW,
@@ -155,7 +162,7 @@ Here are the citations:
   url       = {https://arxiv.org/abs/2103.17107}
 }
 
-@article{xue2023face,
+@article{Xue_2023_Face,
   title     = {Face image de-identification by feature space adversarial perturbation},
   author    = {Xue, Hanyu and Liu, Bo and Yuan, Xin and Ding, Ming and Zhu, Tianqing},
   journal   = {Concurrency and Computation: Practice and Experience},
@@ -167,7 +174,7 @@ Here are the citations:
   url       = {https://onlinelibrary.wiley.com/doi/full/10.1002/cpe.7554}
 }
 
-@inproceedings{richardson2021encoding,
+@inproceedings{Richardson_2021_Encoding,
   author    = {Richardson, Elad and Alaluf, Yuval and Patashnik, Or and Nitzan, Yotam and Azar, Yaniv and Shapiro, Stav and Cohen-Or, Daniel},
   title     = {Encoding in Style: a StyleGAN Encoder for Image-to-Image Translation},
   booktitle = {IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
@@ -176,7 +183,7 @@ Here are the citations:
   url       = {https://openaccess.thecvf.com/content/CVPR2021/html/Richardson_Encoding_in_Style_A_StyleGAN_Encoder_for_Image-to-Image_Translation_CVPR_2021_paper.html}
 }
 
-@article{wen_identitydp_2022,
+@article{Wen_2022_IdentityDP,
   title     = {IdentityDP: Differential private identification protection for face images},
   author    = {Wen, Yunqian and Liu, Bo and Ding, Ming and Xie, Rong and Song, Li},
   year      = {2022},
