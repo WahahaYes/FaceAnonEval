@@ -1,3 +1,27 @@
+"""
+File: utility_evaluation.py
+
+This file contains a function to evaluate the utility of anonymized images using various metrics.
+
+Libraries and Modules:
+- argparse: For parsing command-line arguments.
+- glob: For pathname pattern expansion.
+- os: Provides functions to interact with the operating system.
+- pathlib: Module to handle file paths.
+- cv2: OpenCV, a library for computer vision tasks.
+- insightface: InsightFace, a deep learning toolkit for face analysis.
+- numpy: Library for numerical operations.
+- pandas: Library for data manipulation and analysis.
+- skimage: Library for image processing algorithms.
+- tqdm: Library for displaying progress bars.
+
+Functions:
+- utility_evaluation: Function to evaluate the utility of anonymized images.
+
+Note:
+- This function evaluates the utility of anonymized images using structural similarity (SSIM) and emotion classification.
+"""
+
 import argparse
 import glob
 import os
@@ -20,13 +44,18 @@ from src.privacy_mechanisms.privacy_mechanism import PrivacyMechanism
 def utility_evaluation(
     p_mech_object: PrivacyMechanism,
     args: argparse.Namespace,
-):
+) -> None:
+    """
+    Evaluate the utility of anonymized images.
+
+    Parameters:
+    - p_mech_object (PrivacyMechanism): An instance of the PrivacyMechanism class.
+    - args (argparse.Namespace): Parsed command-line arguments.
+    """
     print("================ Utility Evaluation ================")
 
     detect_model, _ = utils.load_insightface_models()
 
-    # emotion recognition model is from: https://github.com/av-savchenko/face-emotion-recognition
-    # using their released python package
     try:
         emotion_model = HSEmotionRecognizer(model_name=EMOTION_MODEL, device="cuda")
         print("Loaded HSEmotion model on GPU.")
@@ -35,8 +64,6 @@ def utility_evaluation(
         emotion_model = HSEmotionRecognizer(model_name=EMOTION_MODEL, device="cpu")
         print("Loaded HSEmotion model on CPU.")
 
-    # need to compute a list of anonymized face images, then get the
-    # corresponding real faces
     if args.anonymized_dataset is None:
         anon_paths = glob.glob(
             f"Anonymized Datasets//{args.dataset}_{p_mech_object.get_suffix()}//**//*.jpg",
@@ -47,7 +74,6 @@ def utility_evaluation(
             f"Anonymized Datasets//{args.anonymized_dataset}//**//*.jpg", recursive=True
         )
 
-    # build corresponding real paths
     real_paths = []
     for a_p in anon_paths:
         if args.anonymized_dataset is None:
@@ -69,7 +95,6 @@ def utility_evaluation(
         desc="Analyzing utility pair-wise...",
         total=len(anon_paths),
     ):
-        # prepare the faces
         real_img = cv2.imread(r_p)
         anon_img = cv2.imread(a_p)
         bboxes, kpss = detect_model.detect(real_img)
@@ -86,7 +111,6 @@ def utility_evaluation(
             real_face, anon_face = None, None
             faces_detected = False
 
-        # structural similarity
         ssim_img = ssim(
             cv2.cvtColor(real_img, cv2.COLOR_BGR2GRAY),
             cv2.cvtColor(anon_img, cv2.COLOR_BGR2GRAY),
@@ -102,9 +126,7 @@ def utility_evaluation(
             else None
         )
 
-        # emotion recognition
         emotion_class, emotion_prob_err = None, None
-        # list of emotions is: Anger, Contempt, Disgust, Fear, Happiness, Neutral, Sadness, Surprise
         if faces_detected:
             real_emotion, real_scores = emotion_model.predict_emotions(
                 real_face, logits=False

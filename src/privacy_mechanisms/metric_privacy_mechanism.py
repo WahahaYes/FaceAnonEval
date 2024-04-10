@@ -1,3 +1,26 @@
+"""
+File: metric_privacy.py
+
+This file contains a class, MetricPrivacyMechanism, representing an anonymization method
+that preserves privacy by adding noise to the singular values of the Singular Value Decomposition (SVD)
+of the face region in an image.
+
+Libraries and Modules:
+- cv2: OpenCV, a library for computer vision and image processing.
+- numpy: Library for numerical operations.
+- torch: PyTorch, an open-source deep learning library.
+- tqdm: Library for progress bars.
+- src.utils: Custom module providing utility functions.
+- src.privacy_mechanisms.detect_face_mechanism: Custom module providing the DetectFaceMechanism class.
+
+Usage:
+- Create an instance of the MetricPrivacyMechanism class with specified privacy parameters (epsilon and k).
+- Use the process method to anonymize the face region of a given torch tensor image.
+
+Note:
+- This mechanism adds noise to the singular values of the SVD decomposition of the face region to preserve privacy.
+"""
+
 import glob
 import os
 import pickle
@@ -11,37 +34,57 @@ import src.utils as utils
 from src.privacy_mechanisms.detect_face_mechanism import DetectFaceMechanism
 
 
-# Simple anonymization method which blurs the whole image according to a kernel size
 class MetricPrivacyMechanism(DetectFaceMechanism):
+    """
+    Anonymization method that adds noise to the singular values of the SVD decomposition of the face region.
+    """
+
     def __init__(
         self,
         epsilon: float = 1,
         k: int = 4,
         random_seed: int = 69,
     ) -> None:
+        """
+        Initialize the MetricPrivacyMechanism.
+
+        Parameters:
+        - epsilon (float): Privacy parameter controlling the level of noise (default is 1).
+        - k (int): Number of singular values to perturb (default is 4).
+        - random_seed (int): Seed for the random number generator for reproducibility (default is 69).
+        """
         super(MetricPrivacyMechanism, self).__init__()
         self.epsilon = epsilon
         self.k = k
         np.random.seed(seed=random_seed)
 
+        # Estimate sensitivities of SVD singular values
         self.sensitivities = self.estimate_sensitivities()
 
     def process(self, img: torch.tensor) -> torch.tensor:
-        # replacing only the face region
+        """
+        Anonymize the face region in the input torch tensor image.
+
+        Parameters:
+        - img (torch.tensor): Input torch tensor image.
+
+        Returns:
+        - torch.tensor: Anonymized torch tensor image.
+        """
         for i in range(img.shape[0]):
             img_cv2 = utils.img_tensor_to_cv2(img[i])
             crop_img_cv2, bbox = self.get_face_region(img_cv2)
 
             img_cv2 = img_cv2.astype(dtype=np.float32) / 255.0
             crop_img_cv2 = crop_img_cv2.astype(dtype=np.float32) / 255.0
-            # get the true face's bounding box
 
             for channel in range(3):
-                # singular value decomposition
+                # Singular Value Decomposition (SVD)
                 U, S, Vh = np.linalg.svd(crop_img_cv2[:, :, channel])
-                S[self.k :] = 0
+                S[self.k :] = 0  # Truncate singular values
                 S = S / np.linalg.norm(S)
 
+                # Add Laplace noise to the singular values
                 for j in range(len(S)):
                     if j < self.k:
                         S[j] += np.random.laplace(
@@ -49,23 +92,23 @@ class MetricPrivacyMechanism(DetectFaceMechanism):
                         )
 
                 try:
-                    # reconstructing image using new SVD values
+                    # Reconstruct image using modified singular values
                     reconstruction = np.dot(U[:, : S.shape[0]] * S, Vh)
+
+                    # Restore original mean and standard deviation
+                    reconstruction -= np.mean(reconstruction)
+                    reconstruction /= np.std(reconstruction)
+                    reconstruction *= np.std(crop_img_cv2[:, :, channel])
+                    reconstruction += np.mean(crop_img_cv2[:, :, channel])
+                    reconstruction = np.clip(reconstruction, 0, 1)
+                    crop_img_cv2[:, :, channel] = reconstruction
                 except Exception as e:
                     print(f"Warning: Reconstruction failed - {e}")
                     reconstruction = np.random.rand(
                         crop_img_cv2.shape[0], crop_img_cv2.shape[1]
                     )
 
-                # restore the original mean and std dev
-                reconstruction -= np.mean(reconstruction)
-                reconstruction /= np.std(reconstruction)
-                reconstruction *= np.std(crop_img_cv2[:, :, channel])
-                reconstruction += np.mean(crop_img_cv2[:, :, channel])
-                reconstruction = np.clip(reconstruction, 0, 1)
-                crop_img_cv2[:, :, channel] = reconstruction
-
-            # replace the face and update our tensor
+            # Replace the face region and update the tensor
             img_cv2[bbox[1] : bbox[3], bbox[0] : bbox[2]] = crop_img_cv2
             img_cv2 = (img_cv2 * 255).astype(np.uint8)
             img[i] = self.ToTensor(img_cv2)
@@ -73,22 +116,33 @@ class MetricPrivacyMechanism(DetectFaceMechanism):
         return img
 
     def get_suffix(self) -> str:
+        """
+        Get a suffix representing the metric privacy mechanism.
+
+        Returns:
+        - str: A string representing the metric privacy mechanism.
+        """
         return f"metric_privacy_eps{self.epsilon}_k{self.k}"
 
     def estimate_sensitivities(self):
-        # we pull from CelebA to estimate the sensitivity of each SVD singular value
+        """
+        Estimate the sensitivities of the singular values of the SVD decomposition.
 
-        # Try to load the sensitivities if already cached
+        Returns:
+        - list: A list of sensitivities for the singular values.
+        """
+        # Try to load sensitivities from cache if available
         if os.path.isfile("assets//metric_privacy_sensitivities.pickle"):
             with open("assets//metric_privacy_sensitivities.pickle", "rb") as read_file:
                 return pickle.load(read_file)
 
+        # Collect images from CelebA dataset to estimate sensitivities
         file_paths = glob.glob("Datasets//CelebA//**//*.jpg", recursive=True)
-        # we assign a maximum value to keep track of
-        max_k = 50
+        max_k = 50  # Maximum number of singular values
         values = [[] for _ in range(max_k)]
-        num_samples = 10000
+        num_samples = 10000  # Number of samples to estimate sensitivities
 
+        # Iterate over samples to estimate sensitivities
         for _ in tqdm(
             range(num_samples), desc="Estimating sensitivity of SVD decomposition"
         ):
@@ -110,7 +164,7 @@ class MetricPrivacyMechanism(DetectFaceMechanism):
 
         print(f"Sensitivities of normalized singular values: {sensitivities}")
 
-        # cache the result for later runs
+        # Cache the sensitivities for future runs
         with open("assets//metric_privacy_sensitivities.pickle", "wb") as write_file:
             pickle.dump(sensitivities, write_file)
 
