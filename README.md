@@ -124,7 +124,8 @@ Performance metrics and benchmarks for the privacy mechanisms and evaluation met
 For any questions, issues, or feedback, please feel free to reach out to us via [GitHub Issues](https://github.com/your-repo-name/issues) or [Support Forum](https://example.com/support-forum). We value your input and are committed to providing timely assistance and support.
 
 Here are the citations:
-```bixtex
+```bibtex
+# TODO: lastname_word_year
 @inproceedings{DBLP:conf/mm/ChenCNG20,
   author    = {Renwang Chen and
                Xuanhong Chen and
@@ -137,12 +138,11 @@ Here are the citations:
 }
 
 
-@inproceedings{deng2020subcenter,
-  title     = {Sub-center ArcFace: Boosting Face Recognition by Large-scale Noisy Web Faces},
-  author    = {Deng, Jiankang and Guo, Jia and Liu, Tongliang and Gong, Mingming and Zafeiriou, Stefanos},
-  booktitle = {Proceedings of the IEEE Conference on European Conference on Computer Vision},
-  year      = {2020},
-  url       = {https://openaccess.thecvf.com/content_CVPR_2020/html/Deng_Sub-center_ArcFace_Boosting_Face_Recognition_by_Large-scale_Noisy_Web_CVPR_2020_paper.html}
+@inproceedings{deng2018arcface,
+   title={ArcFace: Additive Angular Margin Loss for Deep Face Recognition},
+   author={Deng, Jiankang and Guo, Jia and Niannan, Xue and Zafeiriou, Stefanos},
+   booktitle={CVPR},
+   year={2019}
 }
 
 @inproceedings{Savchenko_2022_CVPRW,
