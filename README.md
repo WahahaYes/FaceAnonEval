@@ -62,17 +62,17 @@ Privacy concerns related to facial recognition have become a critical aspect of 
 ## Installation
 
 Install requirements with:
-pip install -r requirements.txt
+`pip install -r requirements.txt`
 
 By default, the requirements are configured to support CUDA-enabled GPUs.  If running on CPU, run the following commands after installing requirements:
-pip uninstall onnxruntime-gpu
-pip install onnxruntime
+`pip uninstall onnxruntime-gpu`
+`pip install onnxruntime`
 
 We additionally provide a Dockerfile and docker-config.yaml to automatically create an environment.  To create an image and open a terminal within:
-docker-compose run --rm faceanoneval
+`docker-compose run --rm faceanoneval`
 
 If on Windows, to have full terminal functionality:
-winpty docker-compose run --rm faceanoneval
+`winpty docker-compose run --rm faceanoneval`
 A CPU or GPU targeted image can be specified in the 'docker-compose.yaml' file.
 
 ## Usage
@@ -80,12 +80,12 @@ A CPU or GPU targeted image can be specified in the 'docker-compose.yaml' file.
 ### Processing a Dataset
 
 To process a dataset with a specific privacy mechanism, use the following command:
-python process_dataset.py --dataset <dataset_name> --privacy_mechanism <mechanism_name>
+`python process_dataset.py --dataset <dataset_name> --privacy_mechanism <mechanism_name>`
 
 ### Evaluating Anonymized Datasets
 
 To evaluate an anonymized dataset using a specific evaluation methodology, use the following command:
-python evaluate_mechanism.py --dataset <dataset_name> --privacy_mechanism <mechanism_name> --evaluation_method <method_name>
+`python evaluate_mechanism.py --dataset <dataset_name> --privacy_mechanism <mechanism_name> --evaluation_method <method_name>`
 
 ## Contributing
 
