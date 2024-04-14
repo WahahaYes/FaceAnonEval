@@ -48,6 +48,7 @@ from src.privacy_mechanisms.simple_mustache_mechanism import SimpleMustacheMecha
 from src.privacy_mechanisms.simswap_mechanism import SimswapMechanism
 from src.privacy_mechanisms.test_mechanism import TestMechanism
 from src.privacy_mechanisms.uniform_blur_mechanism import UniformBlurMechanism
+from src.privacy_mechanisms.landmark_beard_mechanism import LandmarkBeardMechanism
 
 
 class CustomArgumentParser:
@@ -124,6 +125,7 @@ class CustomArgumentParser:
                 "simswap",
                 "identity_dp",
                 "dcos_metric_privacy",
+                "landmark_beard"
             ],
             default="uniform_blur",
             type=str,
@@ -286,6 +288,8 @@ class CustomArgumentParser:
                 )
             case "simple_mustache":
                 p_mech_object = SimpleMustacheMechanism()
+            case "landmark_beard":
+                p_mech_object = LandmarkBeardMechanism()
             case "simswap":
                 p_mech_object = SimswapMechanism(
                     faceswap_strategy=self.args.faceswap_strategy,
