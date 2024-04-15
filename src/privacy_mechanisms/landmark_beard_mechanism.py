@@ -54,7 +54,6 @@ class LandmarkBeardMechanism(PrivacyMechanism):
 
         return landmarks
 
-    # TODO: Fix beard transparency bug
     def add_beard(self, face: np.ndarray, beard: np.ndarray, landmarks: np.ndarray) -> np.ndarray:
         """
         Add a beard to a face image using facial landmarks.
@@ -81,10 +80,6 @@ class LandmarkBeardMechanism(PrivacyMechanism):
         face_width = np.linalg.norm(face_r - face_l)
         beard_height = np.linalg.norm(nose - chin)
 
-        # Create new face image with alpha channel and set to fully opaque
-        face_with_alpha = cv2.cvtColor(face, cv2.COLOR_BGR2BGRA)
-        face_with_alpha[:, :, 3] = 255
-
         # Resize the beard image to match the width and height of the face
         resized_beard = cv2.resize(beard, (int(face_width * 0.8), int(beard_height * 1.5)))
 
@@ -97,22 +92,22 @@ class LandmarkBeardMechanism(PrivacyMechanism):
         M = cv2.getRotationMatrix2D(center, angle, 1)
         rotated_beard = cv2.warpAffine(resized_beard, M, (resized_beard.shape[1], resized_beard.shape[0]))
 
-        # Overlay the resized and rotated beard onto the face
-        overlay = np.zeros_like(face_with_alpha)
+        # Create a mask for the beard
+        mask = np.zeros_like(rotated_beard[:,:,0])
+        mask[rotated_beard[:,:,3] > 0] = 1
         
-         # Calculate the top-left corner of the bounding box for the beard overlay
-        beard_x, beard_y = min(int(nose[0] - (face_width // 1.9)), overlay.shape[0]), min(int(nose[1] - rotated_beard.shape[0] // 5), overlay.shape[1])
-        rotated_beard = rotated_beard[:min(rotated_beard.shape[0], overlay.shape[0]), :min(rotated_beard.shape[1], overlay.shape[1])]
+        # Calculate the top-left corner of the bounding box for the beard overlay
+        beard_x, beard_y = min(int(nose[0] - (face_width // 1.9)), face.shape[1]), min(int(nose[1] - rotated_beard.shape[0] // 5), face.shape[0])  
 
-        # TODO: Find better fix
-        if (overlay[beard_y:beard_y+rotated_beard.shape[0], beard_x:beard_x+rotated_beard.shape[1]].size != rotated_beard.size):
+        # Apply the beard using logical masking
+        rotated_beard = rotated_beard[:, :, :3]
+        face_img = face.copy()
+        if (face_img[beard_y:beard_y+rotated_beard.shape[0], beard_x:beard_x+rotated_beard.shape[1]].size != rotated_beard.size):
             return face
-        overlay[beard_y:beard_y+rotated_beard.shape[0], beard_x:beard_x+rotated_beard.shape[1]] = rotated_beard            
+        face_region = face_img[beard_y:beard_y+rotated_beard.shape[0], beard_x:beard_x+rotated_beard.shape[1]]  
+        face_region[mask == 1] = rotated_beard[mask == 1]
 
-        # Overlay the resized and rotated beard onto the face
-        face = cv2.add(face_with_alpha, overlay)
-
-        return face
+        return face_img
 
 
     def process(self, img: torch.tensor) -> torch.tensor:
