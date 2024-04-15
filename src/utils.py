@@ -104,17 +104,17 @@ def load_insightface_models():
 
     if DETECT_MODEL is None:
         print("Loading face detection model.")
+        # this ensures the zip file is downloaded and extracted
+        insightface.utils.ensure_available("models", "buffalo_l", root="~/.insightface")
         DETECT_MODEL = insightface.model_zoo.get_model(
-            os.path.expanduser("~//.insightface//models//buffalo_l//det_10g.onnx"),
-            download=True,
+            os.path.expanduser("~//.insightface//models//buffalo_l//det_10g.onnx")
         )
         DETECT_MODEL.prepare(ctx_id=0, det_size=(640, 640), input_size=(640, 640))
     if RECOGNITION_MODEL is None:
         print("Loading facial recognition model.")
         # The recognition model (Arcface with Resnet50 backbone), allows us to batch inputs
         RECOGNITION_MODEL = insightface.model_zoo.get_model(
-            os.path.expanduser("~//.insightface//models//buffalo_l//w600k_r50.onnx"),
-            download=True,
+            os.path.expanduser("~//.insightface//models//buffalo_l//w600k_r50.onnx")
         )
         RECOGNITION_MODEL.prepare(ctx_id=0)
 
