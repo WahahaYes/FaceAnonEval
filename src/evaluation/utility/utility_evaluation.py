@@ -1,9 +1,11 @@
 import argparse
+import gc
 import glob
 import os
 from pathlib import Path
 
 import cv2
+import keras.backend as K
 import numpy as np
 import pandas as pd
 from deepface.extendedmodels import Age, Emotion, Gender, Race
@@ -13,6 +15,10 @@ from tqdm import tqdm
 import src.utils as utils
 from src.evaluation.evaluator import generate_key
 from src.privacy_mechanisms.privacy_mechanism import PrivacyMechanism
+
+cfg = K.tf.compat.v1.ConfigProto()
+cfg.gpu_options.allow_growth = True
+K.set_session(K.tf.compat.v1.Session(config=cfg))
 
 AGE_MODEL, RACE_MODEL, GENDER_MODEL, EMOTION_MODEL, detect_model = (
     None,
@@ -48,15 +54,25 @@ def preprocess_face(path: str):
 def collect_utility_metrics(img_paths: list) -> dict:
     outer_dict = dict()
 
+    keras_counter = 0
+
     for path in tqdm(img_paths, desc="DeepFace analysis"):
         try:
             inner_dict = dict()
             face_img = preprocess_face(path)
-            age_features = AGE_MODEL.predict(face_img[None, :, :, :])
-            race_features = RACE_MODEL.predict(face_img[None, :, :, :])
-            gender_features = GENDER_MODEL.predict(face_img[None, :, :, :])
-            emotion_features = EMOTION_MODEL.predict(face_img[None, :, :, :])
-            grey = cv2.cvtColor(face_img, cv2.COLOR_BGR2GRAY)
+            # NOTE: Overriding model behaviors because Keras model.predict() has a memory leak in loops
+
+            age_predictions = AGE_MODEL.model(face_img[None, :, :, :])[0, :]
+            age_features = Age.find_apparent_age(age_predictions)
+
+            race_features = RACE_MODEL.model(face_img[None, :, :, :])[0, :]
+            gender_features = GENDER_MODEL.model(face_img[None, :, :, :])[0, :]
+
+            img_gray = cv2.cvtColor(face_img, cv2.COLOR_BGR2GRAY)
+            greyscale = img_gray.copy()
+            img_gray = cv2.resize(img_gray, (48, 48))
+            img_gray = np.expand_dims(img_gray, axis=0)
+            emotion_features = EMOTION_MODEL.model(img_gray)[0, :]
 
             inner_dict["age"] = age_features
             inner_dict["race_features"] = race_features
@@ -65,10 +81,16 @@ def collect_utility_metrics(img_paths: list) -> dict:
             inner_dict["gender"] = Gender.labels[np.argmax(gender_features)]
             inner_dict["emotion_features"] = emotion_features
             inner_dict["emotion"] = Emotion.labels[np.argmax(emotion_features)]
-            inner_dict["greyscale"] = grey
+            inner_dict["greyscale"] = greyscale
             outer_dict[path] = inner_dict
         except Exception as e:
             print(f"Warning: face skipped {path} - {e}")
+        if keras_counter >= 100:
+            K.clear_session()
+            gc.Collect()
+            K.set_session(K.tf.compat.v1.Session(config=cfg))
+            keras_counter = -1
+        keras_counter += 1
 
     return outer_dict
 
