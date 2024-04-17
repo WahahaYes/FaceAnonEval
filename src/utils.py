@@ -170,6 +170,7 @@ def collect_utility_metrics(
     Returns:
     - dict: A dictionary of <path, dictionary> pairs containing utility classifications for each face.
     """
+    outer_dict = dict()
     # load a cached version of the dataset if it exists
     if dataset is not None:
         reference_file = f"Datasets//{dataset}//utility_cache.pickle"
@@ -177,12 +178,10 @@ def collect_utility_metrics(
             print(f"Loading cached utility metrics for {dataset}.")
             with open(reference_file, "rb") as read_file:
                 reference_dict = pickle.load(read_file)
-            outer_dict = dict()
             for path in img_paths:
                 if path in reference_dict:
                     outer_dict[path] = reference_dict[path]
             print(f"Loaded {len(outer_dict)} samples from {dataset}.")
-            return outer_dict
 
     print("Collecting utility metrics with DeepFace:")
 
@@ -191,10 +190,10 @@ def collect_utility_metrics(
             "Utility models have not been intialized!  Call utils.load_utility_models() before this method."
         )
 
-    outer_dict = dict()
-
     face_list, emotion_face_list, path_list = [], [], []
     for path in tqdm(img_paths, desc="Assembling batch"):
+        if path in outer_dict:
+            continue
         try:
             face_img = preprocess_face(path)
             img_gray = cv2.cvtColor(face_img, cv2.COLOR_BGR2GRAY)
