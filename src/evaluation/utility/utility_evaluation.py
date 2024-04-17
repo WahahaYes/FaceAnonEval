@@ -1,7 +1,7 @@
 import argparse
-import gc
 import glob
 import os
+import pickle
 from pathlib import Path
 
 import cv2
@@ -15,10 +15,6 @@ from tqdm import tqdm
 import src.utils as utils
 from src.evaluation.evaluator import generate_key
 from src.privacy_mechanisms.privacy_mechanism import PrivacyMechanism
-
-cfg = K.tf.compat.v1.ConfigProto()
-cfg.gpu_options.allow_growth = True
-K.set_session(K.tf.compat.v1.Session(config=cfg))
 
 AGE_MODEL, RACE_MODEL, GENDER_MODEL, EMOTION_MODEL, detect_model = (
     None,
@@ -51,47 +47,74 @@ def preprocess_face(path: str):
     return crop_img
 
 
-def collect_utility_metrics(img_paths: list) -> dict:
+def collect_utility_metrics(
+    img_paths: list, batch_size: int, dataset: str = None
+) -> dict:
+    # load a cached version of the dataset if it exists
+    if dataset is not None:
+        reference_file = f"Datasets//{dataset}//utility_cache.pickle"
+        if os.path.isfile(reference_file):
+            print(f"Loading cached utility metrics for {dataset}.")
+            with open(reference_file, "rb") as read_file:
+                reference_dict = pickle.load(read_file)
+            outer_dict = dict()
+            for path in img_paths:
+                if path in reference_dict:
+                    outer_dict[path] = reference_dict[path]
+            print(f"Loaded {len(outer_dict)} samples from {dataset}.")
+            return outer_dict
+
+    print("Collecting utility metrics with DeepFace:")
+
     outer_dict = dict()
 
-    keras_counter = 0
-
-    for path in tqdm(img_paths, desc="DeepFace analysis"):
+    face_list, emotion_face_list, path_list = [], [], []
+    for path in tqdm(img_paths, desc="Assembling batch"):
         try:
-            inner_dict = dict()
             face_img = preprocess_face(path)
-            # NOTE: Overriding model behaviors because Keras model.predict() has a memory leak in loops
-
-            age_predictions = AGE_MODEL.model(face_img[None, :, :, :])[0, :]
-            age_features = Age.find_apparent_age(age_predictions)
-
-            race_features = RACE_MODEL.model(face_img[None, :, :, :])[0, :]
-            gender_features = GENDER_MODEL.model(face_img[None, :, :, :])[0, :]
-
             img_gray = cv2.cvtColor(face_img, cv2.COLOR_BGR2GRAY)
-            greyscale = img_gray.copy()
             img_gray = cv2.resize(img_gray, (48, 48))
-            img_gray = np.expand_dims(img_gray, axis=0)
-            emotion_features = EMOTION_MODEL.model(img_gray)[0, :]
-
-            inner_dict["age"] = age_features
-            inner_dict["race_features"] = race_features
-            inner_dict["race"] = Race.labels[np.argmax(race_features)]
-            inner_dict["gender_features"] = gender_features
-            inner_dict["gender"] = Gender.labels[np.argmax(gender_features)]
-            inner_dict["emotion_features"] = emotion_features
-            inner_dict["emotion"] = Emotion.labels[np.argmax(emotion_features)]
-            inner_dict["greyscale"] = greyscale
-            outer_dict[path] = inner_dict
+            if face_img.shape != (224, 224, 3):
+                raise Exception("Wrong shape")
+            face_list.append(face_img)
+            emotion_face_list.append(img_gray)
+            path_list.append(path)
         except Exception as e:
             print(f"Warning: face skipped {path} - {e}")
-        if keras_counter >= 100:
-            K.clear_session()
-            gc.Collect()
-            K.set_session(K.tf.compat.v1.Session(config=cfg))
-            keras_counter = -1
-        keras_counter += 1
 
+    face_batch = np.stack(face_list, axis=0)
+    emotion_face_batch = np.stack(emotion_face_list, axis=0)
+    print("AGE:")
+    age_features = AGE_MODEL.model.predict(face_batch, batch_size=batch_size)
+    print("RACE:")
+    race_features = RACE_MODEL.model.predict(face_batch, batch_size=batch_size)
+    print("GENDER:")
+    gender_features = GENDER_MODEL.model.predict(face_batch, batch_size=batch_size)
+    print("EMOTION:")
+    emotion_features = EMOTION_MODEL.model.predict(
+        emotion_face_batch, batch_size=batch_size
+    )
+
+    for i in range(age_features.shape[0]):
+        face_img, path = face_list[i], path_list[i]
+        inner_dict = dict()
+
+        age_pred = Age.find_apparent_age(age_features[i, :])
+        inner_dict["age_features"] = age_features[i, :]
+        inner_dict["age"] = age_pred
+        inner_dict["race_features"] = race_features[i, :]
+        inner_dict["race"] = Race.labels[np.argmax(race_features[i, :])]
+        inner_dict["gender_features"] = gender_features[i, :]
+        inner_dict["gender"] = Gender.labels[np.argmax(gender_features[i, :])]
+        inner_dict["emotion_features"] = emotion_features[i, :]
+        inner_dict["emotion"] = Emotion.labels[np.argmax(emotion_features[i, :])]
+        outer_dict[path] = inner_dict
+
+    K.clear_session()
+    if dataset is not None:
+        # cache the extracted features for reuse
+        with open(f"Datasets//{dataset}//utility_cache.pickle", "wb") as write_file:
+            pickle.dump(outer_dict, write_file)
     return outer_dict
 
 
@@ -128,8 +151,8 @@ def utility_evaluation(
             )
         real_paths.append(r_p)
 
-    anon_dict = collect_utility_metrics(anon_paths)
-    real_dict = collect_utility_metrics(real_paths)
+    real_dict = collect_utility_metrics(real_paths, args.batch_size, args.dataset)
+    anon_dict = collect_utility_metrics(anon_paths, args.batch_size)
 
     out_data = []
 
@@ -141,14 +164,16 @@ def utility_evaluation(
         try:
             this_anon_dict = anon_dict[a_p]
             this_real_dict = real_dict[r_p]
+            anon_greyscale = cv2.cvtColor(cv2.imread(a_p), cv2.COLOR_BGR2GRAY)
+            real_greyscale = cv2.cvtColor(cv2.imread(r_p), cv2.COLOR_BGR2GRAY)
         except:
             print(f"Warning: skipping {a_p}.")
 
-        ssim_score = ssim(this_anon_dict["greyscale"], this_real_dict["greyscale"])
+        ssim_score = ssim(anon_greyscale, real_greyscale)
         emotion_score = (
             1 if this_anon_dict["emotion"] == this_real_dict["emotion"] else 0
         )
-        age_score = 1 if this_anon_dict["age"] == this_real_dict["age"] else 0
+        age_score = np.abs(this_anon_dict["age"] - this_real_dict["age"])
         race_score = 1 if this_anon_dict["race"] == this_real_dict["race"] else 0
         gender_score = 1 if this_anon_dict["gender"] == this_real_dict["gender"] else 0
 
@@ -172,11 +197,9 @@ def utility_evaluation(
     print(f"Gender Acc: {df['gender'].mean():.4f}")
 
     if args.anonymized_dataset is None:
-        out_path = f"Results//Utility//{args.evaluation_method}//{args.dataset}_{p_mech_object.get_suffix()}.csv"
+        out_path = f"Results//{args.evaluation_method}//{args.dataset}_{p_mech_object.get_suffix()}.csv"
     else:
-        out_path = (
-            f"Results//Utility//{args.evaluation_method}//{args.anonymized_dataset}.csv"
-        )
+        out_path = f"Results//{args.evaluation_method}//{args.anonymized_dataset}.csv"
     os.makedirs(Path(out_path).parent, exist_ok=True)
     print(f"Writing results to {out_path}.")
     df.to_csv(out_path)
