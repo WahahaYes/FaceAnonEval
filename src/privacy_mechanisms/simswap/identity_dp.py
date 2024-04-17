@@ -115,13 +115,10 @@ def inference_identity_dp(img_cv2, epsilon: float = 1.0):
 
     # add Laplacian noise to identity embeddings
     sensitivity = calculate_sensitivity()
-    sens = sensitivity["sensitivity"] ##  / 512.0
+    sens = sensitivity["sensitivity"]  ##  / 512.0
     noise = torch.from_numpy(
-        np.random.laplace(
-            loc=0, scale=sens / epsilon, size=id_embedding.shape
-        ),
+        np.random.laplace(loc=0, scale=sens / epsilon, size=id_embedding.shape),
     ).to(device=id_embedding.device, dtype=id_embedding.dtype)
-    print(f"noise std: {torch.std(noise)}")
     id_embedding = id_embedding + noise
     # # clamp to the test set's maximum range
     # id_embedding = torch.clamp(

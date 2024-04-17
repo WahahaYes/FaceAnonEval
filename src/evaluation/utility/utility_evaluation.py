@@ -4,15 +4,12 @@ import os
 from pathlib import Path
 
 import cv2
-import insightface
 import numpy as np
 import pandas as pd
-from hsemotion.facial_emotions import HSEmotionRecognizer
 from skimage.metrics import structural_similarity as ssim
 from tqdm import tqdm
 
-from src import utils
-from src.config import EMOTION_MODEL
+import src.utils as utils
 from src.evaluation.evaluator import generate_key
 from src.privacy_mechanisms.privacy_mechanism import PrivacyMechanism
 
@@ -22,21 +19,9 @@ def utility_evaluation(
     args: argparse.Namespace,
 ):
     print("================ Utility Evaluation ================")
+    utils.load_utility_models()
 
-    detect_model, _ = utils.load_insightface_models()
-
-    # emotion recognition model is from: https://github.com/av-savchenko/face-emotion-recognition
-    # using their released python package
-    try:
-        emotion_model = HSEmotionRecognizer(model_name=EMOTION_MODEL, device="cuda")
-        print("Loaded HSEmotion model on GPU.")
-    except Exception as e:
-        print(f"Unable to load HSEmotion model on GPU, {e}.")
-        emotion_model = HSEmotionRecognizer(model_name=EMOTION_MODEL, device="cpu")
-        print("Loaded HSEmotion model on CPU.")
-
-    # need to compute a list of anonymized face images, then get the
-    # corresponding real faces
+    # need to compute a list of anonymized face images, then get the corresponding real faces
     if args.anonymized_dataset is None:
         anon_paths = glob.glob(
             f"Anonymized Datasets//{args.dataset}_{p_mech_object.get_suffix()}//**//*.jpg",
@@ -62,6 +47,9 @@ def utility_evaluation(
             )
         real_paths.append(r_p)
 
+    real_dict = utils.collect_utility_metrics(real_paths, args.batch_size, args.dataset)
+    anon_dict = utils.collect_utility_metrics(anon_paths, args.batch_size)
+
     out_data = []
 
     for r_p, a_p in tqdm(
@@ -69,77 +57,45 @@ def utility_evaluation(
         desc="Analyzing utility pair-wise...",
         total=len(anon_paths),
     ):
-        # prepare the faces
-        real_img = cv2.imread(r_p)
-        anon_img = cv2.imread(a_p)
-        bboxes, kpss = detect_model.detect(real_img)
+        try:
+            this_anon_dict = anon_dict[a_p]
+            this_real_dict = real_dict[r_p]
+            anon_greyscale = cv2.cvtColor(cv2.imread(a_p), cv2.COLOR_BGR2GRAY)
+            real_greyscale = cv2.cvtColor(cv2.imread(r_p), cv2.COLOR_BGR2GRAY)
+        except:
+            print(f"Warning: skipping {a_p}.")
 
-        if len(bboxes) > 0:
-            real_face = insightface.utils.face_align.norm_crop(
-                real_img, landmark=kpss[0]
-            )
-            anon_face = insightface.utils.face_align.norm_crop(
-                anon_img, landmark=kpss[0]
-            )
-            faces_detected = True
-        else:
-            real_face, anon_face = None, None
-            faces_detected = False
-
-        # structural similarity
-        ssim_img = ssim(
-            cv2.cvtColor(real_img, cv2.COLOR_BGR2GRAY),
-            cv2.cvtColor(anon_img, cv2.COLOR_BGR2GRAY),
-            data_range=255,
+        ssim_score = ssim(anon_greyscale, real_greyscale)
+        emotion_score = (
+            1 if this_anon_dict["emotion"] == this_real_dict["emotion"] else 0
         )
-        ssim_face = (
-            ssim(
-                cv2.cvtColor(real_face, cv2.COLOR_BGR2GRAY),
-                cv2.cvtColor(anon_face, cv2.COLOR_BGR2GRAY),
-                data_range=255,
-            )
-            if faces_detected
-            else None
-        )
-
-        # emotion recognition
-        emotion_class, emotion_prob_err = None, None
-        # list of emotions is: Anger, Contempt, Disgust, Fear, Happiness, Neutral, Sadness, Surprise
-        if faces_detected:
-            real_emotion, real_scores = emotion_model.predict_emotions(
-                real_face, logits=False
-            )
-            anon_emotion, anon_scores = emotion_model.predict_emotions(
-                anon_face, logits=False
-            )
-
-            emotion_class = 1 if real_emotion == anon_emotion else 0
-            emotion_prob_err = np.abs(
-                np.max(real_scores) - anon_scores[np.argmax(real_scores)]
-            )
+        age_score = np.abs(this_anon_dict["age"] - this_real_dict["age"])
+        race_score = 1 if this_anon_dict["race"] == this_real_dict["race"] else 0
+        gender_score = 1 if this_anon_dict["gender"] == this_real_dict["gender"] else 0
 
         out_data.append(
             {
                 "key": generate_key(r_p),
-                "ssim_img": ssim_img,
-                "ssim_face": ssim_face,
-                "emotion_class": emotion_class,
-                "emotion_prob_err": emotion_prob_err,
+                "ssim": ssim_score,
+                "emotion": emotion_score,
+                "age": age_score,
+                "race": race_score,
+                "gender": gender_score,
             }
         )
 
     df = pd.DataFrame(out_data)
     print("================ Utility Results ================")
-    print(f"SSIM: {df['ssim_img'].mean():.4f}")
-    print(f"Emotion classification: {df['emotion_class'].mean():.4f}")
-    print(f"Emotion probability error: {df['emotion_prob_err'].mean():.4f}")
+    print(f"SSIM: {df['ssim'].mean():.4f}")
+    print(f"Emotion Acc: {df['emotion'].mean():.4f}")
+    print(f"Age Acc: {df['age'].mean():.4f}")
+    print(f"Race Acc: {df['race'].mean():.4f}")
+    print(f"Gender Acc: {df['gender'].mean():.4f}")
 
     if args.anonymized_dataset is None:
-        out_path = f"Results//Utility//{args.evaluation_method}//{args.dataset}_{p_mech_object.get_suffix()}.csv"
+        out_path = f"Results//{args.evaluation_method}//{args.dataset}_{p_mech_object.get_suffix()}.csv"
     else:
-        out_path = (
-            f"Results//Utility//{args.evaluation_method}//{args.anonymized_dataset}.csv"
-        )
+        out_path = f"Results//{args.evaluation_method}//{args.anonymized_dataset}.csv"
     os.makedirs(Path(out_path).parent, exist_ok=True)
     print(f"Writing results to {out_path}.")
     df.to_csv(out_path)
