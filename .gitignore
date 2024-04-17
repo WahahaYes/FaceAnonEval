@@ -164,3 +164,6 @@ cython_debug/
 # pretrained model weights
 *.pt 
 *.pth
+
+# test shell script
+lfw_test.sh
