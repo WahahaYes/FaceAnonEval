@@ -176,7 +176,7 @@ class CustomArgumentParser:
             help="For faceswap mechanisms, how to sample the identity faces.",
         )
         parser.add_argument(
-            "--ssim_batch_size",
+            "--ssim_sample_size",
             default=5,
             type=int,
             help="Batch size for face selection when using SSIM-based face swapping strategy.",
@@ -296,7 +296,7 @@ class CustomArgumentParser:
                 p_mech_object = SimswapMechanism(
                     faceswap_strategy=self.args.faceswap_strategy,
                     random_seed=self.args.random_seed,
-                    batch_size=self.args.ssim_batch_size,
+                    sample_size=self.args.ssim_sample_size,
                 )
             case "identity_dp":
                 p_mech_object = IdentityDPMechanism(
