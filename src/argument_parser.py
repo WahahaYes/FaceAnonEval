@@ -36,8 +36,8 @@ from src.dataset.celeba_identity_lookup import CelebAIdentityLookup
 from src.dataset.dataset_identity_lookup import DatasetIdentityLookup
 from src.dataset.face_dataset import FaceDataset, dataset_iterator
 from src.dataset.lfw_identity_lookup import LFWIdentityLookup
-from src.privacy_mechanisms.dcos_metric_privacy_mechanism import (
-    DcosMetricPrivacyMechanism,
+from src.privacy_mechanisms.dtheta_privacy_mechanism import (
+    DThetaPrivacyMechanism,
 )
 from src.privacy_mechanisms.gaussian_blur_mechanism import GaussianBlurMechanism
 from src.privacy_mechanisms.identity_dp_mechanism import IdentityDPMechanism
@@ -123,7 +123,7 @@ class CustomArgumentParser:
                 "simple_mustache",
                 "simswap",
                 "identity_dp",
-                "dcos_metric_privacy",
+                "dtheta_privacy",
             ],
             default="uniform_blur",
             type=str,
@@ -174,6 +174,12 @@ class CustomArgumentParser:
             type=str,
             choices=["random", "all_to_one"],
             help="For faceswap mechanisms, how to sample the identity faces.",
+        )
+        parser.add_argument(
+            "--dtheta_target_angle",
+            default=90,
+            type=float,
+            help="The target average angular offset in degrees (ranging from [0-135]).",
         )
         # --------------------------------------------------------------------------
         # arguments only relevant for processing script
@@ -296,9 +302,9 @@ class CustomArgumentParser:
                     epsilon=self.args.dp_epsilon,
                     random_seed=self.args.random_seed,
                 )
-            case "dcos_metric_privacy":
-                p_mech_object = DcosMetricPrivacyMechanism(
-                    epsilon=self.args.dp_epsilon,
+            case "dtheta_privacy":
+                p_mech_object = DThetaPrivacyMechanism(
+                    target_rotation=self.args.dtheta_target_angle,
                     random_seed=self.args.random_seed,
                 )
             case _:

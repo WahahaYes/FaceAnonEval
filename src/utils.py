@@ -206,6 +206,10 @@ def collect_utility_metrics(
         except Exception as e:
             print(f"Warning: face skipped {path} - {e}")
 
+    if len(face_list) == 0:
+        # This occurs if we preloaded every possible face
+        return outer_dict
+
     face_batch = np.stack(face_list, axis=0)
     emotion_face_batch = np.stack(emotion_face_list, axis=0)
     print("AGE:")
