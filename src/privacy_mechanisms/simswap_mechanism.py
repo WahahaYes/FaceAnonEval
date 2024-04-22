@@ -25,11 +25,11 @@ class SimswapMechanism(DetectFaceMechanism):
         if self.faceswap_strategy == "random":
             self.id_face_paths = glob.glob(
                 "Datasets//CelebA//**//*.jpg", recursive=True
-            )
+            )[182638:]
         if self.faceswap_strategy == "all_to_one":
             self.id_face_paths = glob.glob(
                 "Datasets//CelebA//**//*.jpg", recursive=True
-            )
+            )[182638:]
             self.id_face_path = np.random.choice(self.id_face_paths)
             self.id_face_cv2 = None
 
