@@ -1,3 +1,27 @@
+"""
+File: utility_evaluation.py
+
+This file contains a function to evaluate the utility of anonymized images using various metrics.
+
+Libraries and Modules:
+- argparse: For parsing command-line arguments.
+- glob: For pathname pattern expansion.
+- os: Provides functions to interact with the operating system.
+- pathlib: Module to handle file paths.
+- cv2: OpenCV, a library for computer vision tasks.
+- insightface: InsightFace, a deep learning toolkit for face analysis.
+- numpy: Library for numerical operations.
+- pandas: Library for data manipulation and analysis.
+- skimage: Library for image processing algorithms.
+- tqdm: Library for displaying progress bars.
+
+Functions:
+- utility_evaluation: Function to evaluate the utility of anonymized images.
+
+Note:
+- This function evaluates the utility of anonymized images using structural similarity (SSIM) and emotion classification.
+"""
+
 import argparse
 import glob
 import os
@@ -17,7 +41,14 @@ from src.privacy_mechanisms.privacy_mechanism import PrivacyMechanism
 def utility_evaluation(
     p_mech_object: PrivacyMechanism,
     args: argparse.Namespace,
-):
+) -> None:
+    """
+    Evaluate the utility of anonymized images.
+
+    Parameters:
+    - p_mech_object (PrivacyMechanism): An instance of the PrivacyMechanism class.
+    - args (argparse.Namespace): Parsed command-line arguments.
+    """
     print("================ Utility Evaluation ================")
     utils.load_utility_models()
 
@@ -32,7 +63,6 @@ def utility_evaluation(
             f"Anonymized Datasets//{args.anonymized_dataset}//**//*.jpg", recursive=True
         )
 
-    # build corresponding real paths
     real_paths = []
     for a_p in anon_paths:
         if args.anonymized_dataset is None:

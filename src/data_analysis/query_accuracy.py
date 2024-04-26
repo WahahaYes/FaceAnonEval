@@ -1,5 +1,22 @@
-import os
+"""
+File: query_accuracy.py
 
+This file contains functions to query the accuracy of evaluation results stored in CSV files.
+
+Libraries and Modules:
+- os: Provides functions to interact with the operating system.
+- numpy: Library for numerical operations.
+- pandas: Library for data manipulation and analysis.
+
+Functions:
+- query_accuracy: Main function to query accuracy based on evaluation method.
+- get_results_csv_path: Function to get the path to the results CSV file.
+- _query_rank_k: Function to query accuracy for rank-k evaluation method.
+- _query_validation: Function to query accuracy for validation evaluation method.
+- _query_utility: Function to query accuracy for utility evaluation method.
+"""
+
+import os
 import numpy as np
 import pandas as pd
 
@@ -11,14 +28,24 @@ def query_accuracy(
     anonymized_dataset: str | None = None,
     mode: str = "sum",
     denominator: int | None = None,
-):
+) -> dict | float:
+    """
+    Query the accuracy of evaluation results based on the evaluation method.
+
+    Parameters:
+    - evaluation_method (str): The evaluation method to query accuracy for.
+    - dataset (str): The dataset used for evaluation.
+    - p_mech_suffix (str): The suffix representing the privacy mechanism.
+    - anonymized_dataset (str): The name of the anonymized dataset (default is None).
+    - mode (str): The mode for querying accuracy, either 'sum' or 'mean' (default is 'sum').
+    - denominator (int): The denominator for calculating mean accuracy (default is None).
+
+    Returns:
+    - dict | float: The accuracy results as a dictionary or float.
+    """
     assert mode in ["sum", "mean"], "Mode should be either sum or mean!"
     if mode == "mean" and denominator is None:
-        assert False, (
-            "mode is mean but a denominator has not been passed.  "
-            "The expected number of comparisons for the test at hand "
-            "should be passed as denominator!"
-        )
+        assert False, "Mode is mean but a denominator has not been passed."
 
     csv_path = get_results_csv_path(
         evaluation_method, dataset, p_mech_suffix, anonymized_dataset
@@ -27,9 +54,7 @@ def query_accuracy(
     match evaluation_method:
         case "rank_k":
             return _query_rank_k(csv_path, mode, denominator)
-        case "validation":
-            return _query_validation(csv_path, mode, denominator)
-        case "lfw_validation":
+        case "validation", "lfw_validation":
             return _query_validation(csv_path, mode, denominator)
         case "utility":
             return _query_utility(csv_path, mode, denominator)
@@ -44,7 +69,19 @@ def get_results_csv_path(
     dataset: str,
     p_mech_suffix: str,
     anonymized_dataset: str | None = None,
-):
+) -> str:
+    """
+    Get the path to the results CSV file.
+
+    Parameters:
+    - evaluation_method (str): The evaluation method.
+    - dataset (str): The dataset used for evaluation.
+    - p_mech_suffix (str): The suffix representing the privacy mechanism.
+    - anonymized_dataset (str): The name of the anonymized dataset (default is None).
+
+    Returns:
+    - str: The path to the results CSV file.
+    """
     folder = "Utility" if evaluation_method == "utility" else "Privacy"
 
     csv_path = (
@@ -53,7 +90,7 @@ def get_results_csv_path(
         else f"Results//{folder}//{evaluation_method}//{anonymized_dataset}.csv"
     )
 
-    assert os.path.isfile(csv_path), f"{csv_path} was queried but does not exist!"
+    assert os.path.isfile(csv_path), f"{csv_path} does not exist!"
 
     return csv_path
 
@@ -61,6 +98,17 @@ def get_results_csv_path(
 def _query_rank_k(
     csv_path: str, mode: str = "sum", denominator: int | None = None
 ) -> dict:
+    """
+    Query accuracy for rank-k evaluation method.
+
+    Parameters:
+    - csv_path (str): The path to the results CSV file.
+    - mode (str): The mode for querying accuracy, either 'sum' or 'mean' (default is 'sum').
+    - denominator (int): The denominator for calculating mean accuracy.
+
+    Returns:
+    - dict: The accuracy results as a dictionary.
+    """
     df = pd.read_csv(csv_path)
 
     valid_tallies = dict()
@@ -75,6 +123,17 @@ def _query_rank_k(
 def _query_validation(
     csv_path: str, mode: str = "sum", denominator: int | None = None
 ) -> float:
+    """
+    Query accuracy for validation evaluation method.
+
+    Parameters:
+    - csv_path (str): The path to the results CSV file.
+    - mode (str): The mode for querying accuracy, either 'sum' or 'mean' (default is 'sum').
+    - denominator (int): The denominator for calculating mean accuracy.
+
+    Returns:
+    - float: The accuracy result.
+    """
     df = pd.read_csv(csv_path)
 
     if mode == "sum":
@@ -86,6 +145,17 @@ def _query_validation(
 def _query_utility(
     csv_path: str, mode: str = "sum", denominator: int | None = None
 ) -> dict:
+    """
+    Query accuracy for utility evaluation method.
+
+    Parameters:
+    - csv_path (str): The path to the results CSV file.
+    - mode (str): The mode for querying accuracy, either 'sum' or 'mean' (default is 'sum').
+    - denominator (int): The denominator for calculating mean accuracy.
+
+    Returns:
+    - dict: The accuracy results as a dictionary.
+    """
     df = pd.read_csv(csv_path)
 
     results = dict()

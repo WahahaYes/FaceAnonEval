@@ -1,3 +1,26 @@
+"""
+File: dtheta_privacy_mechanism.py
+
+This file contains a class, DthetaPrivacyMechanism, representing a privacy mechanism
+that anonymizes faces in images based on the cosine similarity of facial embeddings.
+
+Libraries and Modules:
+- cv2: OpenCV, a library for computer vision tasks.
+- numpy: Library for numerical operations.
+- torch: PyTorch, an open-source deep learning library.
+- scipy: Library for scientific computing.
+- src.utils: Custom module providing utility functions.
+- src.privacy_mechanisms.detect_face_mechanism: Custom module providing the DetectFaceMechanism class.
+- src.privacy_mechanisms.simswap.dtheta_privacy: Custom module providing functions for dtheta privacy.
+
+Usage:
+- Create an instance of the DthetaPrivacyMechanism class with a specified privacy parameter (target rotation).
+- Use the process method to anonymize faces in a given torch tensor image.
+
+Note:
+- The DCOS metric is computed using a special orthogonal group.
+"""
+
 import os
 import pickle
 
@@ -15,13 +38,23 @@ from src.privacy_mechanisms.simswap.dtheta_privacy import (
 )
 
 
-# Simple anonymization method which blurs the whole image according to a kernel size
 class DThetaPrivacyMechanism(DetectFaceMechanism):
+    """
+    Anonymization method which anonymizes the face region in images based on the cosine similarity of facial embeddings.
+    """
+
     def __init__(
         self,
         target_rotation: float = 1.0,
         random_seed: int = 69,
     ) -> None:
+        """
+        Initialize the DThetaPrivacyMechanism.
+
+        Parameters:
+        - target_rotation (float): Privacy parameter controlling the level of anonymization (default is 90).
+        - random_seed (int): Seed for the random number generator for reproducibility (default is 69).
+        """
         super(DThetaPrivacyMechanism, self).__init__()
         self.target_rotation = target_rotation
         self.mapping = self.load_mapping()
@@ -39,7 +72,15 @@ class DThetaPrivacyMechanism(DetectFaceMechanism):
         self.sog = special_ortho_group(512, seed=random_seed)
 
     def process(self, img: torch.tensor) -> torch.tensor:
-        # replacing only the face region
+        """
+        Anonymize faces in the input torch tensor image using the DCOS metric.
+
+        Parameters:
+        - img (torch.tensor): Input torch tensor image.
+
+        Returns:
+        - torch.tensor: Processed torch tensor image with anonymized faces.
+        """
         for i in range(img.shape[0]):
             try:
                 img_cv2 = utils.img_tensor_to_cv2(img[i])
@@ -75,6 +116,12 @@ class DThetaPrivacyMechanism(DetectFaceMechanism):
         return img
 
     def get_suffix(self) -> str:
+        """
+        Get a suffix representing the privacy mechanism.
+
+        Returns:
+        - str: A string representing the privacy mechanism.
+        """
         return f"dtheta_privacy_{self.target_rotation}"
 
     def load_mapping(self) -> dict:
