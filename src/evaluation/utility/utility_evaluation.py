@@ -93,9 +93,11 @@ def utility_evaluation(
     print(f"Gender Acc: {df['gender'].mean():.4f}")
 
     if args.anonymized_dataset is None:
-        out_path = f"Results//{args.evaluation_method}//{args.dataset}_{p_mech_object.get_suffix()}.csv"
+        out_path = f"Results//Utility//{args.evaluation_method}//{args.dataset}_{p_mech_object.get_suffix()}.csv"
     else:
-        out_path = f"Results//{args.evaluation_method}//{args.anonymized_dataset}.csv"
+        out_path = (
+            f"Results//Utility//{args.evaluation_method}//{args.anonymized_dataset}.csv"
+        )
     os.makedirs(Path(out_path).parent, exist_ok=True)
     print(f"Writing results to {out_path}.")
     df.to_csv(out_path)
