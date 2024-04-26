@@ -41,6 +41,7 @@ from src.privacy_mechanisms.dtheta_privacy_mechanism import (
 )
 from src.privacy_mechanisms.gaussian_blur_mechanism import GaussianBlurMechanism
 from src.privacy_mechanisms.identity_dp_mechanism import IdentityDPMechanism
+from src.privacy_mechanisms.landmark_beard_mechanism import LandmarkBeardMechanism
 from src.privacy_mechanisms.metric_privacy_mechanism import MetricPrivacyMechanism
 from src.privacy_mechanisms.pixel_dp_mechanism import PixelDPMechanism
 from src.privacy_mechanisms.privacy_mechanism import PrivacyMechanism
@@ -124,6 +125,7 @@ class CustomArgumentParser:
                 "simswap",
                 "identity_dp",
                 "dtheta_privacy",
+                "landmark_beard",
             ],
             default="uniform_blur",
             type=str,
@@ -292,6 +294,8 @@ class CustomArgumentParser:
                 )
             case "simple_mustache":
                 p_mech_object = SimpleMustacheMechanism()
+            case "landmark_beard":
+                p_mech_object = LandmarkBeardMechanism()
             case "simswap":
                 p_mech_object = SimswapMechanism(
                     faceswap_strategy=self.args.faceswap_strategy,
