@@ -174,7 +174,7 @@ class CustomArgumentParser:
             "--faceswap_strategy",
             default="random",
             type=str,
-            choices=["random", "all_to_one"],
+            choices=["random", "all_to_one", "ssim_similarity", "ssim_dissimilarity"],
             help="For faceswap mechanisms, how to sample the identity faces.",
         )
         parser.add_argument(
@@ -182,6 +182,12 @@ class CustomArgumentParser:
             default=90,
             type=float,
             help="The target average angular offset in degrees (ranging from [0-135]).",
+        )
+        parser.add_argument(
+            "--ssim_sample_size",
+            default=5,
+            type=int,
+            help="Batch size for face selection when using SSIM-based face swapping strategy.",
         )
         # --------------------------------------------------------------------------
         # arguments only relevant for processing script
@@ -300,6 +306,7 @@ class CustomArgumentParser:
                 p_mech_object = SimswapMechanism(
                     faceswap_strategy=self.args.faceswap_strategy,
                     random_seed=self.args.random_seed,
+                    sample_size=self.args.ssim_sample_size,
                 )
             case "identity_dp":
                 p_mech_object = IdentityDPMechanism(
