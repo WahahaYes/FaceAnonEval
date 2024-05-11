@@ -46,7 +46,11 @@ class SimswapMechanism(DetectFaceMechanism):
         self,
         faceswap_strategy: str = "random",
         random_seed: int = 69,
-        sample_size: int = 32,
+        sample_size: int = 0,
+        check_age:  bool = False,
+        check_race: bool = False,
+        check_gender: bool = False,
+        check_emotion: bool = False,
     ) -> None:
         """
         Initialize the SimswapMechanism.
@@ -54,13 +58,21 @@ class SimswapMechanism(DetectFaceMechanism):
         Parameters:
         - faceswap_strategy (str): Strategy for selecting faces to swap (default is "random").
         - random_seed (int): Seed for the random number generator for reproducibility (default is 69).
-        - sample_size (int): Size of the batch for face selection (default is 0).
+        - sample_size (int): Size of the sample for face selection (default is 0).
+        - check_age (bool): Swap considering detected age (default in False).
+        - check_race (bool): Swap considering deteced race (default is False).
+        - check_gender (bool): Swap considering detected gender (default is False).
+        - check_emotion (bool): Swap considering detected emotion (default is False).
         """
         super(SimswapMechanism, self).__init__()
         self.faceswap_strategy = faceswap_strategy
         self.pad_ratio = 0.15
         self.random_seed = random_seed
         self.sample_size = sample_size
+        self.check_age = check_age
+        self.check_race = check_race
+        self.check_gender = check_gender
+        self.check_emotion = check_emotion
         np.random.seed(seed=self.random_seed)
 
         self.id_face_paths = glob.glob("Datasets//CelebA//**//*.jpg", recursive=True)[
@@ -131,7 +143,36 @@ class SimswapMechanism(DetectFaceMechanism):
         Returns:
         - np.array: Identity face as a numpy array.
         """
-        if self.faceswap_strategy == "random":
+        if any([self.check_age, self.check_race, self.check_gender, self.check_emotion]):
+            # Compute utility embeddings for the original image
+            utility_metrics = utils.collect_utility_metrics([orig_img], batch_size=1)
+
+            # Extract utility features from the computed metrics
+            age_features = utility_metrics[orig_img]["age_features"]
+            race_features = utility_metrics[orig_img]["race_features"]
+            gender_features = utility_metrics[orig_img]["gender_features"]
+            emotion_features = utility_metrics[orig_img]["emotion_features"]
+
+            # Randomly sample face paths based on sample_size
+            selected_paths = np.random.choice(
+                self.id_face_paths,
+                min(self.sample_size, len(self.id_face_paths)),
+                replace=False,
+            )
+
+            # Initialize a dictionary to store utility distances
+            util_distances = {}
+
+            # Compute utility metrics for each sampled face image and calculate distances
+            
+            for selected_path in selected_paths:
+                try:
+                    selected_img_cv2 = cv2.imread(selected_path)
+                    selected_utility_metrics = utils.collect_utility_metrics
+
+
+
+        elif self.faceswap_strategy == "random":
             face_path = np.random.choice(self.id_face_paths)
             img_cv2 = cv2.imread(face_path)
             try:

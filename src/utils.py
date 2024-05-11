@@ -1,22 +1,54 @@
 """
 File: utils.py
 
-This file contains utility functions for image processing and general tasks.
+This file contains functions for facial utility metrics computation and preprocessing.
 
 Libraries and Modules:
-- numpy: Library for numerical operations.
-- torch: PyTorch deep learning library.
+- os: Operating system module for file operations.
+- pickle: Module for serializing and deserializing Python objects.
+- cv2: OpenCV library for image processing.
+- insightface: Library for facial recognition and analysis.
+- numpy: Numerical computing library for array operations.
+- onnxruntime: Runtime for ONNX (Open Neural Network Exchange) models.
+- torch: PyTorch library for deep learning.
+- deepface.extendedmodels: Module for extended facial analysis models.
+- tqdm: Module for displaying progress bars during iterations.
+
+Global Variables:
+- DETECT_MODEL, RECOGNITION_MODEL: Models for face detection and recognition from InsightFace.
+- AGE_MODEL, RACE_MODEL, GENDER_MODEL, EMOTION_MODEL: Models for estimating age, race, gender, and emotion from DeepFace.
+- EMBEDDING_COMPARISON_METHOD: Method used for comparing facial embeddings.
 
 Functions:
-- img_tensor_to_cv2(img: torch.tensor) -> np.ndarray: Convert a PyTorch tensor image to a NumPy array.
-- chunk_list(data, chunksize): Load a list in chunks.
-- embedding_distance(emb1, emb2): Calculate the distance between two embeddings based on specified methods.
+1. img_tensor_to_cv2(img: torch.tensor) -> np.ndarray:
+   Convert a PyTorch tensor image to a NumPy array image compatible with OpenCV.
 
-Constants:
-- EMBEDDING_COMPARISON_METHOD (List[str]): List of embedding comparison methods.
+2. chunk_list(data, chunksize):
+   Generator function to split a list into chunks of specified size.
 
-Usage:
-- Utilize the provided functions for image processing and general tasks in the project.
+3. embedding_distance(emb1, emb2):
+   Compute the distance between two facial embeddings based on the configured method.
+
+4. cosine_similarity_numpy(emb1, emb2):
+   Compute the cosine similarity between two facial embeddings.
+
+5. load_insightface_models():
+   Load and initialize the face detection and recognition models from InsightFace.
+
+6. load_utility_models():
+   Load and initialize the utility models for age, race, gender, and emotion estimation.
+
+7. preprocess_face(path: str, size: int = 224):
+   Preprocess a face image by detecting and cropping the face region.
+
+8. collect_utility_metrics(img_paths: list, batch_size: int, dataset: str | None = None) -> dict:
+   Collect utility metrics such as age, race, gender, and emotion for a list of face images.
+
+9. padded_crop(img, bbox, padding):
+   Crop and pad a face region from an image based on the specified bounding box and padding.
+
+Note:
+- The file provides essential functions for facial utility metrics computation and preprocessing.
 """
 
 import os
@@ -33,23 +65,20 @@ from tqdm import tqdm
 from src.config import EMBEDDING_COMPARISON_METHOD
 
 DETECT_MODEL, RECOGNITION_MODEL = None, None
-
 AGE_MODEL, RACE_MODEL, GENDER_MODEL, EMOTION_MODEL = None, None, None, None
 
 
 def img_tensor_to_cv2(img: torch.tensor) -> np.ndarray:
     """
-    Convert a PyTorch tensor image to a NumPy array.
+    Convert a PyTorch tensor image to a NumPy array image compatible with OpenCV.
 
     Parameters:
-    - img (torch.tensor): Input image tensfor with shape [3xWxH] in the [0, 1] range.
+    - img (torch.tensor): Input image tensor.
 
     Returns:
-    - np.ndarray: Converted image as a NumPy array.
+    - np.ndarray: Converted image array.
     """
-    assert (
-        len(img.shape) == 3
-    ), "A single image should be passed to img_torch_to_cv2(...)."
+    assert len(img.shape) == 3, "A single image should be passed to img_torch_to_cv2(...)."
 
     img: np.ndarray = img.cpu().detach().numpy()
     img = img * 255
@@ -60,14 +89,14 @@ def img_tensor_to_cv2(img: torch.tensor) -> np.ndarray:
 
 def chunk_list(data, chunksize):
     """
-    Load a list in chunks.
+    Generator function to split a list into chunks of specified size.
 
     Parameters:
-    - data: Input list to be loaded in chunks.
-    - chunksize: Size of each chunk.
+    - data: Input list or iterable.
+    - chunksize (int): Size of each chunk.
 
     Yields:
-    - Chunked portions of the input list.
+    - Chunked portions of the input data.
     """
     for i in range(0, len(data), chunksize):
         end_step = min(i + chunksize, len(data) - 1)
@@ -76,11 +105,11 @@ def chunk_list(data, chunksize):
 
 def embedding_distance(emb1, emb2):
     """
-    Calculate the distance between two embeddings based on specified methods.
+    Compute the distance between two facial embeddings based on the configured method.
 
     Parameters:
-    - emb1: First embedding.
-    - emb2: Second embedding.
+    - emb1: First facial embedding.
+    - emb2: Second facial embedding.
 
     Returns:
     - Distance between the embeddings.
@@ -100,17 +129,32 @@ def embedding_distance(emb1, emb2):
 
 
 def cosine_similarity_numpy(emb1, emb2):
+    """
+    Compute the cosine similarity between two facial embeddings.
+
+    Parameters:
+    - emb1: First facial embedding.
+    - emb2: Second facial embedding.
+
+    Returns:
+    - Cosine similarity between the embeddings.
+    """
     return np.dot(emb1, emb2) / (np.linalg.norm(emb1) * np.linalg.norm(emb2))
 
 
 def load_insightface_models():
+    """
+    Load and initialize the face detection and recognition models from InsightFace.
+
+    Returns:
+    - DETECT_MODEL: Loaded face detection model.
+    - RECOGNITION_MODEL: Loaded facial recognition model.
+    """
     global DETECT_MODEL, RECOGNITION_MODEL
-    # this line suppresses warnings (was experiencing weird thread allocation warnings)
     onnxruntime.set_default_logger_severity(4)
 
     if DETECT_MODEL is None:
         print("Loading face detection model.")
-        # this ensures the zip file is downloaded and extracted
         insightface.utils.ensure_available("models", "buffalo_l", root="~/.insightface")
         DETECT_MODEL = insightface.model_zoo.get_model(
             os.path.expanduser("~//.insightface//models//buffalo_l//det_10g.onnx")
@@ -118,7 +162,6 @@ def load_insightface_models():
         DETECT_MODEL.prepare(ctx_id=0, det_size=(640, 640), input_size=(640, 640))
     if RECOGNITION_MODEL is None:
         print("Loading facial recognition model.")
-        # The recognition model (Arcface with Resnet50 backbone), allows us to batch inputs
         RECOGNITION_MODEL = insightface.model_zoo.get_model(
             os.path.expanduser("~//.insightface//models//buffalo_l//w600k_r50.onnx")
         )
@@ -128,6 +171,12 @@ def load_insightface_models():
 
 
 def load_utility_models():
+    """
+    Load and initialize the utility models for age, race, gender, and emotion estimation.
+
+    Returns:
+    - AGE_MODEL, RACE_MODEL, GENDER_MODEL, EMOTION_MODEL: Loaded utility models.
+    """
     global AGE_MODEL, RACE_MODEL, GENDER_MODEL, EMOTION_MODEL, DETECT_MODEL
     AGE_MODEL = Age.ApparentAgeClient()
     RACE_MODEL = Race.RaceClient()
@@ -138,12 +187,21 @@ def load_utility_models():
 
 
 def preprocess_face(path: str, size: int = 224):
+    """
+    Preprocess a face image by detecting and cropping the face region.
+
+    Parameters:
+    - path (str): Path to the input image file.
+    - size (int): Size of the cropped face region.
+
+    Returns:
+    - np.ndarray: Preprocessed face image.
+    """
     if DETECT_MODEL is None:
         raise Exception("DETECT_MODEL has not been initialized!")
     img = cv2.imread(path)
     bboxes, kpss = DETECT_MODEL.detect(img)
     if len(bboxes) == 0:
-        # if a face isn't detected, we will pass the unaltered image through
         return cv2.resize(img, (size, size))
     bbox = bboxes[0]
     h0, w0, h1, w1 = int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])
@@ -156,22 +214,18 @@ def collect_utility_metrics(
     img_paths: list, batch_size: int, dataset: str | None = None
 ) -> dict:
     """
-    Returns a dictionary of <path, dictionary> containing the utility metrics for
-    every face in the input img_paths list.  The inner dictionaries contain
-    <age_features, age, race_features, race, gender_features, gender, emotion_features, emotion>
-    as keys (age, race, gender, emotion are probably all that's needed).
+    Collect utility metrics such as age, race, gender, and emotion for a list of face images.
 
     Parameters:
-    - img_paths (list): A list of paths corresponding to the faces you wish to extract utility metrics for.
-    - batch_size (int): The batch size used when making predictions over the list of paths.
-    - dataset (str | None): If processing on a standard dataset (CelebA, lfw, etc.), specifying here will
-    attempt to cache the results for reuse.
+    - img_paths (list): List of paths to face image files.
+    - batch_size (int): Batch size for processing images.
+    - dataset (str | None): Name of the dataset (optional).
 
     Returns:
-    - dict: A dictionary of <path, dictionary> pairs containing utility classifications for each face.
+    - dict: Dictionary mapping image paths to utility metric information.
     """
     outer_dict = dict()
-    # load a cached version of the dataset if it exists
+
     if dataset is not None:
         reference_file = f"Datasets//{dataset}//utility_cache.pickle"
         if os.path.isfile(reference_file):
@@ -187,7 +241,7 @@ def collect_utility_metrics(
 
     if AGE_MODEL is None:
         raise Exception(
-            "Utility models have not been intialized!  Call utils.load_utility_models() before this method."
+            "Utility models have not been intialized! Call utils.load_utility_models() before this method."
         )
 
     face_list, emotion_face_list, path_list = [], [], []
@@ -207,7 +261,6 @@ def collect_utility_metrics(
             print(f"Warning: face skipped {path} - {e}")
 
     if len(face_list) == 0:
-        # This occurs if we preloaded every possible face
         return outer_dict
 
     face_batch = np.stack(face_list, axis=0)
@@ -239,7 +292,6 @@ def collect_utility_metrics(
         outer_dict[path] = inner_dict
 
     if dataset is not None:
-        # cache the extracted features for reuse
         with open(f"Datasets//{dataset}//utility_cache.pickle", "wb") as write_file:
             pickle.dump(outer_dict, write_file)
     return outer_dict
@@ -311,10 +363,19 @@ def collect_utility_metrics_from_faces(face_imgs: list, batch_size: int) -> dict
 
 
 def padded_crop(img, bbox, padding):
+    """
+    Crop and pad a face region from an image based on the specified bounding box and padding.
+
+    Parameters:
+    - img: Input image array.
+    - bbox: Bounding box coordinates of the face region.
+    - padding: Padding size for the cropped region.
+
+    Returns:
+    - np.ndarray: Cropped and padded face region.
+    """
     if padding is int:
         padding = (padding, padding)
-    # pad the bbox
-    # TODO: make method to pad outside regions with zeros
 
     h0 = bbox[0] - padding[0]
     w0 = bbox[1] - padding[1]

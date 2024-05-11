@@ -174,7 +174,13 @@ class CustomArgumentParser:
             "--faceswap_strategy",
             default="random",
             type=str,
-            choices=["random", "all_to_one", "ssim_similarity", "ssim_dissimilarity"],
+            choices=[
+                "random", 
+                "all_to_one", 
+                "ssim_similarity", 
+                "ssim_dissimilarity",
+                "util_similarity",
+                "util_dissimilarity"],
             help="For faceswap mechanisms, how to sample the identity faces.",
         )
         parser.add_argument(
@@ -184,10 +190,34 @@ class CustomArgumentParser:
             help="for dtheta privacy, the target base angular offset in degrees.",
         )
         parser.add_argument(
-            "--ssim_sample_size",
+            "--sample_size",
             default=5,
             type=int,
-            help="Batch size for face selection when using SSIM-based face swapping strategy.",
+            help="Sample size for face selection when using SSIM or utility-based face swapping strategy.",
+        )
+        parser.add_argument(
+            "--check_age",
+            default=False,
+            type=bool,
+            help="Allow similarity/dissimilarity comparisons based on age when using face swapping strategy.",
+        )
+        parser.add_argument(
+            "--check_race",
+            default=False,
+            type=bool,
+            help="Allow similarity/dissimilarity comparisons based on race when using face swapping strategy.",
+        )
+        parser.add_argument(
+            "--check_gender",
+            default=False,
+            type=bool,
+            help="Allow similarity/dissimilarity comparisons based on gender when using face swapping strategy.",
+        )
+        parser.add_argument(
+            "--check_emotion",
+            default=False,
+            type=bool,
+            help="Allow similarity/dissimilarity comparisons based on emotion when using face swapping strategy.",
         )
         # --------------------------------------------------------------------------
         # arguments only relevant for processing script
@@ -306,7 +336,11 @@ class CustomArgumentParser:
                 p_mech_object = SimswapMechanism(
                     faceswap_strategy=self.args.faceswap_strategy,
                     random_seed=self.args.random_seed,
-                    sample_size=self.args.ssim_sample_size,
+                    sample_size=self.args.sample_size,
+                    check_age=self.args.check_age,
+                    check_race=self.args.check_race,
+                    check_gender=self.args.check_gender,
+                    check_emotion=self.args.check_emotion,
                 )
             case "identity_dp":
                 p_mech_object = IdentityDPMechanism(
