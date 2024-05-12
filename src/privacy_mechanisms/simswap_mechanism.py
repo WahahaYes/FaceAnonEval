@@ -1,29 +1,3 @@
-"""
-File: simswap_mechanism.py
-
-This file contains a class, SimswapMechanism, representing a privacy mechanism
-that swaps faces in images based on various strategies.
-
-Libraries and Modules:
-- numpy: Library for numerical operations.
-- cv2: OpenCV library for image processing.
-- torch: PyTorch, an open-source deep learning library.
-- logging: Module for logging messages.
-- src.utils: Custom module providing utility functions.
-- src.privacy_mechanisms.detect_face_mechanism: Custom module providing the DetectFaceMechanism class.
-- src.privacy_mechanisms.simswap.inference: Custom module providing the inference function for SimSwap.
-- skimage.metrics: Module for image similarity metrics.
-- structural_similarity: Function for calculating the structural similarity index.
-
-Usage:
-- Create an instance of the SimswapMechanism class with a specified faceswap strategy and optional parameters.
-- Use the process method to swap faces in a given torch tensor image.
-
-Note:
-- This mechanism swaps faces in images based on different strategies such as random selection, SSIM similarity, or dissimilarity.
-- Depending on the strategy, the mechanism selects the most similar or dissimilar face from a dataset.
-"""
-
 import glob
 import logging
 
@@ -35,7 +9,6 @@ from skimage.metrics import structural_similarity as ssim
 import src.utils as utils
 from src.privacy_mechanisms.detect_face_mechanism import DetectFaceMechanism
 from src.privacy_mechanisms.simswap.inference import inference
-
 
 class SimswapMechanism(DetectFaceMechanism):
     """
@@ -144,8 +117,12 @@ class SimswapMechanism(DetectFaceMechanism):
         - np.array: Identity face as a numpy array.
         """
         if any([self.check_age, self.check_race, self.check_gender, self.check_emotion]):
+            # Check if original image is provided
+            if orig_img is None:
+                raise ValueError("Original image must be provided for utility-based face selection.")
+
             # Compute utility embeddings for the original image
-            utility_metrics = utils.collect_utility_metrics([orig_img], batch_size=1)
+            utility_metrics = utils.collect_utility_metrics_from_images([orig_img], batch_size=1)
 
             # Extract utility features from the computed metrics
             age_features = utility_metrics[orig_img]["age_features"]
@@ -153,8 +130,8 @@ class SimswapMechanism(DetectFaceMechanism):
             gender_features = utility_metrics[orig_img]["gender_features"]
             emotion_features = utility_metrics[orig_img]["emotion_features"]
 
-            # Randomly sample face paths based on sample_size
-            selected_paths = np.random.choice(
+            # Randomly sample face images based on sample_size
+            selected_images = np.random.choice(
                 self.id_face_paths,
                 min(self.sample_size, len(self.id_face_paths)),
                 replace=False,
@@ -164,13 +141,54 @@ class SimswapMechanism(DetectFaceMechanism):
             util_distances = {}
 
             # Compute utility metrics for each sampled face image and calculate distances
-            
-            for selected_path in selected_paths:
+            for selected_image in selected_images:
                 try:
-                    selected_img_cv2 = cv2.imread(selected_path)
-                    selected_utility_metrics = utils.collect_utility_metrics
+                    selected_img_cv2 = cv2.imread(selected_image)
+                    selected_utility_metrics = utils.collect_utility_metrics_from_images([selected_img_cv2], batch_size=1)
 
+                    # Extract utility features from the computed metrics
+                    selected_age_features = selected_utility_metrics[selected_img_cv2]["age_features"]
+                    selected_race_features = selected_utility_metrics[selected_img_cv2]["race_features"]
+                    selected_gender_features = selected_utility_metrics[selected_img_cv2]["gender_features"]
+                    selected_emotion_features = selected_utility_metrics[selected_img_cv2]["emotion_features"]
 
+                    # Compute distances based on utility features
+                    age_distance = utils.embedding_distance(age_features, selected_age_features)
+                    race_distance = utils.embedding_distance(race_features, selected_race_features)
+                    gender_distance = utils.embedding_distance(gender_features, selected_gender_features)
+                    emotion_distance = utils.embedding_distance(emotion_features, selected_emotion_features)
+
+                    # Store distances for the selected image
+                    util_distances[selected_image] = {
+                        "age_distance": age_distance,
+                        "race_distance": race_distance,
+                        "gender_distance": gender_distance,
+                        "emotion_distance": emotion_distance
+                    }
+                except Exception as e:
+                    logging.warning("Error processing utility-based face selection - %s", e)
+
+            # Sort the sampled face images based on distances
+            sorted_images = sorted(
+                selected_images,
+                key=lambda image: (
+                    util_distances[image]["age_distance"] if self.check_age else 0,
+                    util_distances[image]["race_distance"] if self.check_race else 0,
+                    util_distances[image]["gender_distance"] if self.check_gender else 0,
+                    util_distances[image]["emotion_distance"] if self.check_emotion else 0,
+                ),
+                reverse=self.faceswap_strategy == "util_similarity",
+            )
+
+            # Load and return the most similar or dissimilar utility features
+            selected_image = sorted_images[0]
+            selected_face_cv2 = cv2.imread(selected_image)
+            _, bbox = self.get_face_region(selected_face_cv2)
+            padding = (
+                int((bbox[2] - bbox[0]) * self.pad_ratio),
+                int((bbox[3] - bbox[1]) * self.pad_ratio),
+            )
+            return utils.padded_crop(selected_face_cv2, bbox, padding=padding)
 
         elif self.faceswap_strategy == "random":
             face_path = np.random.choice(self.id_face_paths)

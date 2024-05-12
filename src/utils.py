@@ -296,6 +296,97 @@ def collect_utility_metrics(
             pickle.dump(outer_dict, write_file)
     return outer_dict
 
+def collect_utility_metrics_from_images(
+        img_list: list, batch_size: int, dataset: str | None = None
+) -> dict:
+    """
+    Collect utility metrics such as age, race, gender, and emotion for a list of face images.
+
+    Parameters:
+    - img_list (list): List of face images.
+    - batch_size (int): Batch size for processing images.
+    - dataset (str | None): Name of the dataset (optional).
+
+    Returns:
+    - dict: Dictionary mapping images to utility metric information.
+    """
+    outer_dict = dict()
+
+    if dataset is not None:
+        reference_file = f"Datasets//{dataset}//utility_cache.pickle"
+        if os.path.isfile(reference_file):
+            print(f"Loading cached utility metrics for {dataset}.")
+            with open(reference_file, "rb") as read_file:
+                reference_dict = pickle.load(read_file)
+            for path, metrics in reference_dict.items():
+                # Load the image from the path stored in reference_dict
+                cached_img = cv2.imread(path)
+                if cached_img is not None:
+                    # Compare the loaded image with the input images in img_list
+                    for img in img_list:
+                        if np.array_equal(img, cached_img):
+                            outer_dict[img] = metrics
+                            break
+            print(f"Loaded {len(outer_dict)} samples from {dataset}.")
+ 
+    print("Collecting utility metrics with DeepFace:")
+
+    if AGE_MODEL is None:
+        raise Exception(
+            "Utility models have not been initialized! Call utils.load_utility_models() before this method."
+        )
+
+    face_list, emotion_face_list = [], []
+    for img in tqdm(img_list, desc="Assembling batch"):
+        if img in outer_dict:
+            continue
+        try:
+            face_img = img
+            img_gray = cv2.cvtColor(face_img, cv2.COLOR_BGR2GRAY)
+            img_gray = cv2.resize(img_gray, (48, 48))
+            if face_img.shape != (244, 244, 3):
+                raise Exception("Wrong shape")
+            face_list.append(face_img)
+            emotion_face_list.append(img_gray)
+        except Exception as e:
+            print(f"Warning: face skipped {img} - {e}")
+ 
+    if len(face_list) == 0:
+        return outer_dict
+  
+    face_batch = np.stack(face_list, axis=0)
+    emotion_face_batch = np.stack(emotion_face_list, axis=0)
+    print("AGE:")
+    age_features = AGE_MODEL.model.predict(face_batch, batch_size=batch_size)
+    print("RACE:")
+    race_features = RACE_MODEL.model.predict(face_batch, batch_size=batch_size)
+    print("GENDER:")
+    gender_features = GENDER_MODEL.model.predict(face_batch, batch_size=batch_size)
+    print("EMOTION:")
+    emotion_features = EMOTION_MODEL.model.predict(
+        emotion_face_batch, batch_size=batch_size
+    )
+
+    for i in range(age_features.shape[0]):
+        face_img = face_list[i]
+        inner_dict = dict()
+
+        age_pred = Age.find_apparent_age(age_features[i, :])
+        inner_dict["age_features"] = age_features[i, :]
+        inner_dict["age"] = age_pred
+        inner_dict["race_features"] = race_features[i, :]
+        inner_dict["race"] = Race.labels[np.argmax(race_features[i, :])]
+        inner_dict["gender_features"] = gender_features[i, :]
+        inner_dict["gender"] = Gender.labels[np.argmax(gender_features[i, :])]
+        inner_dict["emotion_features"] = emotion_features[i, :]
+        inner_dict["emotion"] = Emotion.labels[np.argmax(emotion_features[i, :])]
+        outer_dict[face_img] = inner_dict
+
+    if dataset is not None:
+        with open(f"Datasets//{dataset}//utility_cache.pickle", "wb") as write_file:
+            pickle.dump(outer_dict, write_file)
+    return outer_dict
+
 
 def collect_utility_metrics_from_faces(face_imgs: list, batch_size: int) -> dict:
     """
