@@ -209,6 +209,28 @@ def preprocess_face(path: str, size: int = 224):
     crop_img = cv2.resize(crop_img, (size, size))
     return crop_img
 
+def preprocess_face_image(face_img: np.ndarray, size: int = 224):
+    """
+    Preprocess a face image by detecting and cropping the face region using face image.
+
+    Parameters:
+    - face_img (str): Input image.
+    - size (int): Size of the cropped face region.
+
+    Returns:
+    - np.ndarray: Preprocessed face image.
+    """
+    if DETECT_MODEL is None:
+        raise Exception("DETECT_MODEL has not been initialized!")
+    bboxes, kpss = DETECT_MODEL.detect(face_img)
+    if len(bboxes) == 0:
+        return cv2.resize(face_img, (size, size))
+    bbox = bboxes[0]
+    h0, w0, h1, w1 = int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])
+    crop_img = face_img[w0:w1, h0:h1, :]
+    crop_img = cv2.resize(crop_img, (size, size))
+    return crop_img
+
 
 def collect_utility_metrics(
     img_paths: list, batch_size: int, dataset: str | None = None
@@ -322,11 +344,12 @@ def collect_utility_metrics_from_faces(face_imgs: list, batch_size: int) -> dict
     face_list, emotion_face_list = [], []
     for face_img in tqdm(face_imgs, desc="Assembling batch"):
         try:
-            img_gray = cv2.cvtColor(face_img, cv2.COLOR_BGR2GRAY)
+            cropped_face_img = preprocess_face_image(face_img)
+            img_gray = cv2.cvtColor(cropped_face_img, cv2.COLOR_BGR2GRAY)
             img_gray = cv2.resize(img_gray, (48, 48))
-            if face_img.shape != (224, 224, 3):
+            if cropped_face_img.shape != (224, 224, 3):
                 raise Exception("Wrong shape, faces should be preprocessed!")
-            face_list.append(face_img)
+            face_list.append(cropped_face_img)
             emotion_face_list.append(img_gray)
         except Exception as e:
             print(f"Warning: face skipped - {e}")

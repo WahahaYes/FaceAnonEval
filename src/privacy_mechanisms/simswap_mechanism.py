@@ -77,8 +77,8 @@ class SimswapMechanism(DetectFaceMechanism):
                     int((bbox[3] - bbox[1]) * self.pad_ratio),
                 )
                 face_cv2 = utils.padded_crop(img_cv2, bbox, padding=padding)
-                if self.faceswap_strategy in ["ssim_similarity", "ssim_dissimilarity"]:
-                    id_face_cv2 = self.get_identity_face(img_cv2)
+                if self.faceswap_strategy in ["ssim_similarity", "ssim_dissimilarity", "util_similarity", "util_dissimilarity"]:
+                    id_face_cv2 = self.get_identity_face(orig_img=img_cv2)
                 else:
                     id_face_cv2 = self.get_identity_face()
 
