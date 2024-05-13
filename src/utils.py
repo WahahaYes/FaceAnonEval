@@ -388,6 +388,71 @@ def collect_utility_metrics_from_images(
     return outer_dict
 
 
+def collect_utility_metrics_from_faces(face_imgs: list, batch_size: int) -> dict:
+    """
+    Returns a list dictionaries containing the utility metrics for
+    every face in the input face_imgs list.  The inner dictionaries contain
+    <age_features, age, race_features, race, gender_features, gender, emotion_features, emotion>
+    as keys (age, race, gender, emotion are probably all that's needed).
+
+    Parameters:
+    - face_imgs (list): A list of face images corresponding to the faces you wish to extract utility metrics for.  Note that faces shouold be preprocessed (i.e. with preprocess_face) before this
+    - batch_size (int): The batch size used when making predictions over the list of paths.
+
+    Returns:
+    - list: A list of dictionaries containing utility classifications for each face.
+    """
+    outer_list = list()
+    # load a cached version of the dataset if it exists
+
+    if AGE_MODEL is None:
+        raise Exception(
+            "Utility models have not been intialized!  Call utils.load_utility_models() before this method."
+        )
+
+    face_list, emotion_face_list = [], []
+    for face_img in tqdm(face_imgs, desc="Assembling batch"):
+        try:
+            img_gray = cv2.cvtColor(face_img, cv2.COLOR_BGR2GRAY)
+            img_gray = cv2.resize(img_gray, (48, 48))
+            if face_img.shape != (224, 224, 3):
+                raise Exception("Wrong shape, faces should be preprocessed!")
+            face_list.append(face_img)
+            emotion_face_list.append(img_gray)
+        except Exception as e:
+            print(f"Warning: face skipped - {e}")
+
+    face_batch = np.stack(face_list, axis=0)
+    emotion_face_batch = np.stack(emotion_face_list, axis=0)
+    print("AGE:")
+    age_features = AGE_MODEL.model.predict(face_batch, batch_size=batch_size)
+    print("RACE:")
+    race_features = RACE_MODEL.model.predict(face_batch, batch_size=batch_size)
+    print("GENDER:")
+    gender_features = GENDER_MODEL.model.predict(face_batch, batch_size=batch_size)
+    print("EMOTION:")
+    emotion_features = EMOTION_MODEL.model.predict(
+        emotion_face_batch, batch_size=batch_size
+    )
+
+    for i in range(age_features.shape[0]):
+        inner_dict = dict()
+
+        age_pred = Age.find_apparent_age(age_features[i, :])
+        inner_dict["face_img"] = face_list[i]
+        inner_dict["age_features"] = age_features[i, :]
+        inner_dict["age"] = age_pred
+        inner_dict["race_features"] = race_features[i, :]
+        inner_dict["race"] = Race.labels[np.argmax(race_features[i, :])]
+        inner_dict["gender_features"] = gender_features[i, :]
+        inner_dict["gender"] = Gender.labels[np.argmax(gender_features[i, :])]
+        inner_dict["emotion_features"] = emotion_features[i, :]
+        inner_dict["emotion"] = Emotion.labels[np.argmax(emotion_features[i, :])]
+        outer_list.append(inner_dict)
+
+    return outer_list
+
+
 def padded_crop(img, bbox, padding):
     """
     Crop and pad a face region from an image based on the specified bounding box and padding.

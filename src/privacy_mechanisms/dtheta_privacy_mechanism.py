@@ -21,17 +21,12 @@ Note:
 - The DCOS metric is computed using a special orthogonal group.
 """
 
-import os
-import pickle
-
-import colortrans
 import cv2
 import numpy as np
 import torch
-from scipy.stats import special_ortho_group
+from scipy.stats import uniform_direction
 
 import src.utils as utils
-from src.data_analysis.map_dtheta_epsilons import create_theta_epsilon_mapping
 from src.privacy_mechanisms.detect_face_mechanism import DetectFaceMechanism
 from src.privacy_mechanisms.simswap.dtheta_privacy import (
     inference_dtheta_privacy,
@@ -45,35 +40,30 @@ class DThetaPrivacyMechanism(DetectFaceMechanism):
 
     def __init__(
         self,
-        target_rotation: float = 1.0,
+        theta: float = 90,
+        epsilon: float = 1.0,
         random_seed: int = 69,
     ) -> None:
         """
         Initialize the DThetaPrivacyMechanism.
 
         Parameters:
-        - target_rotation (float): Privacy parameter controlling the level of anonymization (default is 90).
+        - theta (float): Privacy parameter controlling the base angular offset (in degrees) from input embedding (default is 90).
+        - epsilon (float): Privacy parameter controlling the distribution around theta
         - random_seed (int): Seed for the random number generator for reproducibility (default is 69).
         """
         super(DThetaPrivacyMechanism, self).__init__()
-        self.target_rotation = target_rotation
-        self.mapping = self.load_mapping()
-        a, b = zip(*sorted(zip(self.mapping["theta"], self.mapping["epsilon"])))
-        self.mapping["theta"] = a
-        self.mapping["epsilon"] = b
-
-        # Determine the necessary epsilon based on mapping data
-        self.epsilon = np.interp(
-            self.target_rotation, self.mapping["theta"], self.mapping["epsilon"]
-        )
+        self.theta = theta
+        self.epsilon = epsilon
 
         self.pad_ratio = 0.15
-        np.random.seed(seed=random_seed)
-        self.sog = special_ortho_group(512, seed=random_seed)
+        self.random_seed = random_seed
+        np.random.seed(seed=self.random_seed)
+        self.UD = uniform_direction(dim=512, seed=self.random_seed)
 
     def process(self, img: torch.tensor) -> torch.tensor:
         """
-        Anonymize faces in the input torch tensor image using the DCOS metric.
+        Anonymize faces in the input torch tensor image using dtheta privacy.
 
         Parameters:
         - img (torch.tensor): Input torch tensor image.
@@ -93,14 +83,10 @@ class DThetaPrivacyMechanism(DetectFaceMechanism):
                 )
                 face_cv2 = utils.padded_crop(img_cv2, bbox, padding=padding)
 
-                result_cv2 = inference_dtheta_privacy(face_cv2, self.sog, self.epsilon)
+                result_cv2 = inference_dtheta_privacy(
+                    face_cv2, self.theta, self.epsilon, self.random_seed, self.UD
+                )
                 result_cv2 = cv2.cvtColor(result_cv2, cv2.COLOR_RGB2BGR)
-
-                # use partial color transfer to prevent harsh transitions in final image
-                result_cv2 = (
-                    0.5 * colortrans.transfer_lhm(result_cv2, face_cv2)
-                    + 0.5 * result_cv2
-                ).astype(np.uint8)
 
                 result_cv2 = cv2.resize(
                     result_cv2,
@@ -122,11 +108,4 @@ class DThetaPrivacyMechanism(DetectFaceMechanism):
         Returns:
         - str: A string representing the privacy mechanism.
         """
-        return f"dtheta_privacy_{self.target_rotation}"
-
-    def load_mapping(self) -> dict:
-        if os.path.isfile("assets//dtheta_mapping.pickle"):
-            with open("assets//dtheta_mapping.pickle", "rb") as read_file:
-                mapping = pickle.load(read_file)
-                return mapping
-        return create_theta_epsilon_mapping()
+        return f"dtheta_privacy_theta{self.theta}_eps{self.epsilon}"
