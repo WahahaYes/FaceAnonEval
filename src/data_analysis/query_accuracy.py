@@ -17,6 +17,7 @@ Functions:
 """
 
 import os
+
 import numpy as np
 import pandas as pd
 
@@ -54,7 +55,9 @@ def query_accuracy(
     match evaluation_method:
         case "rank_k":
             return _query_rank_k(csv_path, mode, denominator)
-        case "validation", "lfw_validation":
+        case "validation":
+            return _query_validation(csv_path, mode, denominator)
+        case "lfw_validation":
             return _query_validation(csv_path, mode, denominator)
         case "utility":
             return _query_utility(csv_path, mode, denominator)
@@ -160,13 +163,13 @@ def _query_utility(
 
     results = dict()
     # regression metrics
-    for metric in ["ssim_img", "ssim_face", "emotion_prob_err"]:
+    for metric in ["ssim", "age"]:
         if mode == "sum":
             results[metric] = np.sum(df[metric])
         elif mode == "mean":
             results[metric] = np.mean(df[metric])
     # classification metrics
-    for metric in ["emotion_class"]:
+    for metric in ["emotion", "race", "gender"]:
         if mode == "sum":
             results[metric] = np.sum(df[metric] == 1)
         elif mode == "mean":

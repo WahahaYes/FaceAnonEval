@@ -178,10 +178,10 @@ class CustomArgumentParser:
             help="For faceswap mechanisms, how to sample the identity faces.",
         )
         parser.add_argument(
-            "--dtheta_target_angle",
+            "--theta",
             default=90,
             type=float,
-            help="The target average angular offset in degrees (ranging from [0-135]).",
+            help="for dtheta privacy, the target base angular offset in degrees.",
         )
         parser.add_argument(
             "--ssim_sample_size",
@@ -315,7 +315,8 @@ class CustomArgumentParser:
                 )
             case "dtheta_privacy":
                 p_mech_object = DThetaPrivacyMechanism(
-                    target_rotation=self.args.dtheta_target_angle,
+                    theta=self.args.theta,
+                    epsilon=self.args.dp_epsilon,
                     random_seed=self.args.random_seed,
                 )
             case _:

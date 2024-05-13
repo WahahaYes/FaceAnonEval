@@ -1,8 +1,9 @@
 import cv2
 import numpy as np
+import scipy
 import torch
 import torch.nn.functional as F
-from scipy.stats import special_ortho_group
+from scipy.stats import uniform_direction, vonmises_fisher
 
 from src.privacy_mechanisms.simswap.identity_dp import generate_embedding
 from src.privacy_mechanisms.simswap.inference import (
@@ -13,20 +14,35 @@ from src.utils import img_tensor_to_cv2
 
 
 def inference_dtheta_privacy(
-    img_cv2, special_ortho_group=special_ortho_group(512), epsilon: float = 1.0
+    img_cv2,
+    theta: float = 90,
+    epsilon: float = 1.0,
+    random_seed: float = 69,
+    UD=uniform_direction(dim=512),
 ):
     model = instantiate_model()
     id_embedding = generate_embedding(img_cv2)
 
-    # rotate the embedding by a random offset
     id_emb_numpy = id_embedding.cpu().detach().numpy()
-    rot_matrix = special_ortho_group.rvs()
+    # reshape from (1, 512) to (512,)
+    rotated = id_emb_numpy[0, :]
 
-    id_emb_rotated = np.matmul(id_emb_numpy, rot_matrix)
-    id_emb_scaled = id_emb_numpy + (id_emb_rotated - id_emb_numpy) / (epsilon + 1e-8)
+    # first, apply a random rotation to satisfy d_theta privacy
+    if epsilon > 0:
+        rotated = rotated / np.linalg.norm(rotated)
+        vmf = vonmises_fisher(mu=rotated, kappa=epsilon, seed=random_seed)
+        rotated = vmf.rvs()[0, :]
+    elif epsilon == 0:
+        rotated = UD.rvs()
 
+    # then apply a follow-up rotation
+    if theta > 0:
+        theta_rads = theta * np.pi / 180
+        rotated = rotate_embedding(rotated, theta_rads)
+
+    # pass through to generator
     id_embedding = torch.tensor(
-        id_emb_scaled, dtype=id_embedding.dtype, device=id_embedding.device
+        rotated.reshape((1, 512)), dtype=id_embedding.dtype, device=id_embedding.device
     )
     id_embedding = F.normalize(id_embedding, p=2, dim=1)
 
@@ -44,3 +60,31 @@ def inference_dtheta_privacy(
         swap_result = model(None, attr_img, id_embedding, None, True)[0]
     result_cv2 = img_tensor_to_cv2(swap_result)
     return result_cv2
+
+
+def rotate_embedding(embedding: np.ndarray, theta_rads: float) -> np.ndarray:
+    # sample a random vector in R^512
+    x1 = np.random.uniform(low=-1.0, high=1.0, size=512)
+    # generate orthonormal basis between
+    orth = scipy.linalg.orth(np.array([x1, embedding]).T)
+    # extract our unit basis vectors
+    x1 = orth[:, 0]
+    x1 = x1.reshape((512, 1))
+    x1 = x1 / np.linalg.norm(x1)
+    x2 = orth[:, 1]
+    x2 = x2.reshape((512, 1))
+    x2 = x2 / np.linalg.norm(x2)
+    # compute exponential rotation matrix
+    e_A = (
+        np.identity(512)
+        + (np.matmul(x2, x1.T) - np.matmul(x1, x2.T)) * np.sin(theta_rads)
+        + (np.matmul(x1, x1.T) + np.matmul(x2, x2.T)) * (np.cos(theta_rads) - 1)
+    )
+
+    ## computing the exponential matrix works too but is slower
+    # L = np.matmul(x2, x1.T) - np.matmul(x1, x2.T)
+    # e_A = scipy.linalg.expm(theta_rads * L)
+
+    # multiply rotation matrix against id embedding
+    rotated = np.matmul(e_A, embedding)
+    return rotated
