@@ -20,7 +20,7 @@ class SimswapMechanism(DetectFaceMechanism):
         faceswap_strategy: str = "random",
         random_seed: int = 69,
         sample_size: int = 0,
-        check_age:  bool = False,
+        check_age: bool = False,
         check_race: bool = False,
         check_gender: bool = False,
         check_emotion: bool = False,
@@ -122,13 +122,13 @@ class SimswapMechanism(DetectFaceMechanism):
                 raise ValueError("Original image must be provided for utility-based face selection.")
 
             # Compute utility embeddings for the original image
-            utility_metrics = utils.collect_utility_metrics_from_images([orig_img], batch_size=1)
+            utility_metrics = utils.collect_utility_metrics_from_faces([orig_img], batch_size=1)
 
             # Extract utility features from the computed metrics
-            age_features = utility_metrics[orig_img]["age_features"]
-            race_features = utility_metrics[orig_img]["race_features"]
-            gender_features = utility_metrics[orig_img]["gender_features"]
-            emotion_features = utility_metrics[orig_img]["emotion_features"]
+            age_features = utility_metrics[0]["age_features"]
+            race_features = utility_metrics[0]["race_features"]
+            gender_features = utility_metrics[0]["gender_features"]
+            emotion_features = utility_metrics[0]["emotion_features"]
 
             # Randomly sample face images based on sample_size
             selected_images = np.random.choice(
@@ -144,13 +144,13 @@ class SimswapMechanism(DetectFaceMechanism):
             for selected_image in selected_images:
                 try:
                     selected_img_cv2 = cv2.imread(selected_image)
-                    selected_utility_metrics = utils.collect_utility_metrics_from_images([selected_img_cv2], batch_size=1)
+                    selected_utility_metrics = utils.collect_utility_metrics_from_faces([selected_img_cv2], batch_size=1)
 
                     # Extract utility features from the computed metrics
-                    selected_age_features = selected_utility_metrics[selected_img_cv2]["age_features"]
-                    selected_race_features = selected_utility_metrics[selected_img_cv2]["race_features"]
-                    selected_gender_features = selected_utility_metrics[selected_img_cv2]["gender_features"]
-                    selected_emotion_features = selected_utility_metrics[selected_img_cv2]["emotion_features"]
+                    selected_age_features = selected_utility_metrics[0]["age_features"]
+                    selected_race_features = selected_utility_metrics[0]["race_features"]
+                    selected_gender_features = selected_utility_metrics[0]["gender_features"]
+                    selected_emotion_features = selected_utility_metrics[0]["emotion_features"]
 
                     # Compute distances based on utility features
                     age_distance = utils.embedding_distance(age_features, selected_age_features)
