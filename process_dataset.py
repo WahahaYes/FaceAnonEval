@@ -21,6 +21,7 @@ import os
 import cv2
 from tqdm import tqdm
 
+import src.utils as utils
 from src.argument_parser import CustomArgumentParser
 from src.privacy_mechanisms.privacy_mechanism import (
     PrivacyMechanism,
@@ -43,6 +44,9 @@ if __name__ == "__main__":
     )
     # Create the output folder if it doesn't exist
     os.makedirs(output_folder, exist_ok=True)
+
+    # Load utility models
+    utils.load_utility_models()
 
     # iterate over the dataset and apply the privacy mechanism
     for imgs, img_paths in tqdm(
