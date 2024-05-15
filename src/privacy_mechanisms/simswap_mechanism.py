@@ -46,7 +46,7 @@ class SimswapMechanism(DetectFaceMechanism):
         self,
         faceswap_strategy: str = "random",
         random_seed: int = 69,
-        sample_size: int = 0,
+        sample_size: int = 32,
     ) -> None:
         """
         Initialize the SimswapMechanism.
@@ -119,7 +119,7 @@ class SimswapMechanism(DetectFaceMechanism):
         Returns:
         - str: A string representing the privacy mechanism.
         """
-        return f"simswap_{self.faceswap_strategy}_seed{self.random_seed}"
+        return f"simswap_{self.faceswap_strategy}"
 
     def get_identity_face(self, orig_img: np.ndarray = None):
         """
@@ -183,6 +183,11 @@ class SimswapMechanism(DetectFaceMechanism):
             for selected_path in selected_paths:
                 try:
                     selected_img_cv2 = cv2.imread(selected_path)
+                    if selected_img_cv2.shape != orig_img.shape:
+                        selected_img_cv2 = cv2.resize(
+                            selected_img_cv2,
+                            [orig_img.shape[1], orig_img.shape[0]],
+                        )
                     ssim_score = ssim(orig_img, selected_img_cv2, channel_axis=-1)
                     ssim_scores[selected_path] = ssim_score
                 except Exception as e:

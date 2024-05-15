@@ -46,9 +46,7 @@ for i, theta in enumerate(dtheta_thetas):
         label=f"theta={theta}",
     )
 fig.suptitle("dtheta privacy")
-for i in range(2):
-    for j in range(4):
-        ax[i, j].legend()
+ax[0, 0].legend()
 plt.tight_layout()
 plt.savefig("Results//figures//dtheta_privacy_all.png")
 
@@ -68,3 +66,30 @@ fig, ax = generate_mechanism_plot(
 fig.suptitle("Identity DP")
 plt.tight_layout()
 plt.savefig("Results//figures//identity_dp.png")
+
+# ----------------------------------------------------------------------------
+
+simswap_suffixes = [
+    "simswap_random",
+    "simswap_ssim_dissimilarity",
+    "simswap_ssim_similarity",
+]
+
+fig, ax = plt.subplots(2, 4)
+
+for ind, suf in enumerate(simswap_suffixes):
+    fig, ax = generate_mechanism_plot(
+        fig=fig,
+        ax=ax,
+        x_values=[ind],
+        suffixes=[suf],
+        xlabel_name="condition",
+        label=suf,
+        markersize=20,
+    )
+
+fig.suptitle("Face Swapping Strategies")
+ax[0, 0].legend()
+plt.legend()
+plt.tight_layout()
+plt.savefig("Results//figures//simswap_methods.png")
