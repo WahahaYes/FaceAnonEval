@@ -1,27 +1,3 @@
-"""
-File: utility_evaluation.py
-
-This file contains a function to evaluate the utility of anonymized images using various metrics.
-
-Libraries and Modules:
-- argparse: For parsing command-line arguments.
-- glob: For pathname pattern expansion.
-- os: Provides functions to interact with the operating system.
-- pathlib: Module to handle file paths.
-- cv2: OpenCV, a library for computer vision tasks.
-- insightface: InsightFace, a deep learning toolkit for face analysis.
-- numpy: Library for numerical operations.
-- pandas: Library for data manipulation and analysis.
-- skimage: Library for image processing algorithms.
-- tqdm: Library for displaying progress bars.
-
-Functions:
-- utility_evaluation: Function to evaluate the utility of anonymized images.
-
-Note:
-- This function evaluates the utility of anonymized images using structural similarity (SSIM) and emotion classification.
-"""
-
 import argparse
 import glob
 import os
@@ -43,16 +19,19 @@ def utility_evaluation(
     args: argparse.Namespace,
 ) -> None:
     """
-    Evaluate the utility of anonymized images.
+    Evaluate real and anonymized images across a range of utility metrics.
 
     Parameters:
     - p_mech_object (PrivacyMechanism): An instance of the PrivacyMechanism class.
     - args (argparse.Namespace): Parsed command-line arguments.
+
+    Returns: None - writes results to Results//Utility//*.
     """
+
     print("================ Utility Evaluation ================")
     utils.load_utility_models()
 
-    # need to compute a list of anonymized face images, then get the corresponding real faces
+    # Compute a list of anonymized face images, then get the corresponding real faces
     if args.anonymized_dataset is None:
         anon_paths = glob.glob(
             f"Anonymized Datasets//{args.dataset}_{p_mech_object.get_suffix()}//**//*.jpg",
@@ -115,6 +94,7 @@ def utility_evaluation(
         )
 
     df = pd.DataFrame(out_data)
+
     print("================ Utility Results ================")
     print(f"SSIM: {df['ssim'].mean():.4f}")
     print(f"Emotion Acc: {df['emotion'].mean():.4f}")

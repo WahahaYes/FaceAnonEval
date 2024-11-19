@@ -1,27 +1,3 @@
-"""
-File: lfw_validation_evaluation.py
-
-This file contains a function, lfw_validation_evaluation, for evaluating 
-a face recognition system using the Labled Faces in the Wild (LFW) dataset.
-
-Libraries and Modules:
-- os: Provides a way to interact with the operating system.
-- numpy: Library for numerical operations.
-- tqdm: A library for displaying progress bars during iteration.
-- src.evaluation.evaluator: Custom module providing the Evaluator class.
-
-Usage:
-- Use the lfw_validation_evaluation function to perform evaluation on a face recognition system using the LFW dataset.
-- This function utilizes an Evaluator object for computing and storing embeddings of faces needed for evaluation.
-
-Note:
-- The evaluation is performed using the pairs.txt file provided with the LFW dataset.
-- The real_pairs list is constructed using embeddings from the Evaluator for genuine pairs of faces.
-- The anon_pairs list is constructed using embeddings for positive pairs of faces (from different identities).
-- The threshold for positive classification is fitted to the real_pairs using a simple threshold-based approach.
-- The function returns a list of hits and misses based on the application of the fitted threshold to the anon_pairs.
-"""
-
 import argparse
 import os
 
@@ -40,15 +16,17 @@ def lfw_validation_evaluation(
     evaluator: Evaluator,
     p_mech_object: PrivacyMechanism,
     args: argparse.Namespace,
-):
+) -> None:
     """
     Evaluate a face recognition system using the Labeled Faces in the Wild (LFW) dataset.
 
     Parameters:
     - evaluator (Evaluator): An instance of the Evaluator class.
+    - p_mech_object (PrivacyMechanism): PrivacyMechanism class instance for specifying results path if --anonymized_dataset is not specified.
+    - args: Command line arguments.
 
     Returns:
-    - list: A list containing hits and misses (1 for hit, 0 for miss) based on the evaluation.
+    - None.  Writes a csv of lfw validation results into Results//Privacy//* folder.
     """
     print("================ LFW Validation ================")
 

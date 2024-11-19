@@ -100,7 +100,7 @@ class CustomArgumentParser:
         # shared arguments
         parser.add_argument(
             "--dataset",
-            choices=["CelebA", "lfw"],
+            choices=["CelebA", "CelebA_test", "lfw"],
             default="CelebA",
             type=str,
             help="The benchmark dataset to process, which should be placed into the 'Datasets' folder.",
@@ -259,6 +259,14 @@ class CustomArgumentParser:
                 dataset_identity_lookup = CelebAIdentityLookup(
                     identity_file_path="Datasets//CelebA//Anno//identity_CelebA.txt",
                     test_set_only=self.args.celeba_test_set_only,
+                )
+            case "CelebA_test":
+                face_dataset = FaceDataset(
+                    "Datasets//CelebA_test",
+                    filetype=".jpg",
+                )
+                dataset_identity_lookup = CelebAIdentityLookup(
+                    identity_file_path="Datasets//CelebA_test//Anno//identity_CelebA.txt",
                 )
             case "lfw":
                 face_dataset = FaceDataset("Datasets//lfw", filetype=".jpg")

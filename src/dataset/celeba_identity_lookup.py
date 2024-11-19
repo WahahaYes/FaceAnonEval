@@ -20,13 +20,12 @@ Usage:
 
 Attributes:
 - None
- 
+
 Note:
 - The CelebA dataset is used, and the structure of the text file containing information is assumed to have each line in the format "<file_name> <identity_label>".
 - The `test_set_only` flag is used to process the test set exclusively.
-- The identity information is stored in the `identity_dict` dictionary for efficient lookups. 
+- The identity information is stored in the `identity_dict` dictionary for efficient lookups.
 """
-
 
 import ntpath
 from pathlib import Path
@@ -38,7 +37,7 @@ from src.dataset.dataset_identity_lookup import DatasetIdentityLookup
 
 class CelebAIdentityLookup(DatasetIdentityLookup):
     """
-    Class for building and looking up identities in the CelebA dataset
+    Class for looking up identity labels in the CelebA dataset
 
     Attributes:
     - identity_dict (dict): A dictionary to store identity information.

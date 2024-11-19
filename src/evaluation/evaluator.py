@@ -1,43 +1,8 @@
-"""
-File: evaluator.py
-
-This file ocntainsthe implementation of the Evaluator class, which is 
-responsible for computing and storing embeddings of faces needed for
-an evaluation. The Evaluator interacts with file paths, performs face
-detection, facial recognition, and caching of embeddings for efficient
-reuse.
-
-Libraries and Modules:
-- glob: Used for file path pattern matching.
-- os: Provides a way to interact with the operating system.
-- pickle: Used for serializing and deserializing objects.
-- Path (from pathlib): Represents and manipulates filesystem objects.
-- cv2 (OpenCV): Library for image processing.
-- insightface: Library for face recognition.
-- onnxryntime: Provides an interface for ONNX (Open Neural Netwrok Exchange) models.
-- tqdm: Library for displaying progress bars during iteration.
-- chunk_list (from src.urls): Custom utility function for chunking lists.
-
-Usage:
-- Create an instance of the Evaluator class by providing paths to the dataset of real faces (`real_dataset_path`) and the dataset of anonymized faces (`anon_dataset_path`).
-- Additional parameters can be set, such as batch size, file extension, and options to overwrite existing embeddings or include only CelebA test set images.
-- The Evaluator initializes by loading cached embeddings if available, otherwise, it generates embeddings for both real and anonymized datasets.
-- The Evaluator uses face detection and recognition models from the insight face library to process faces and compute embeddings.
-- Computed embeddings are stored and reused for efficiency, with the option to overwrite existing embeddings.
-- The Evaluator provides methods to retrive real and anonymized face embeddings based on file paths.
-
-Attributes:
-- None
-
-Note:
-- Windows users may face issues installing insightface with Conda; installing with Pip requires Visual C++ 14.0 or greater.
-- The `onnxruntime.set_default_logger_severity(4)` statement adjusts the logger severity for ONNX Runtime, addressing potential warnings during execution.
-"""
-
 import glob
 import os
 import pickle
 from pathlib import Path
+from typing import Any
 
 import cv2
 import insightface
@@ -50,13 +15,6 @@ from src.utils import chunk_list
 class Evaluator:
     """
     Evaluator class for computing and storing embeddings of faces needed for an evaluation.
-
-    Attributes:
-    - real_dataset_path (str): The path to the dataset of real faces.
-    - anon_dataset_path (str): The path to the dataset of anonymized faces.
-    - real_embeddings (dict | None): Cached embeddings for real faces.
-    - anon_embeddings (dict | None): Cached embeddings for anonymized faces.
-    - batch_size (int): The batch size for processing faces.
     """
 
     def __init__(
@@ -74,17 +32,17 @@ class Evaluator:
         Parameters:
         - real_dataset_path (str): The path to the dataset of real faces.
         - anon_dataset_path (str): The path to the dataset of anonymized faces.
-        - batch_size (int): The batch size for processing faces.
+        - batch_size (int): The batch size used when embedding faces.
         - file_extension (str): The file extension for face images (default is ".jpg")
         - overwrite_embeddings (bool): IF True, overwrite existing embeddings (default is False).
-        - celeba_test_set_only (bool): If True, include only images from the CelebA test set.
+        - celeba_test_set_only (bool): If True, include only test set images when processing CelebA.
         """
         self.real_dataset_path = real_dataset_path
         self.anon_dataset_path = anon_dataset_path
-        # First, see if there are cached embeddings for the passed
-        # datasets which we can load in.
         self.real_embeddings: dict | None = None
         self.anon_embeddings: dict | None = None
+
+        # First, see if there are cached embeddings to load
         if not overwrite_embeddings:
             self.real_embeddings = self.load_embeddings(real_dataset_path)
             self.anon_embeddings = self.load_embeddings(anon_dataset_path)
@@ -113,7 +71,6 @@ class Evaluator:
 
         self.detect_model, self.recog_model = utils.load_insightface_models()
 
-        # We store the embeddings to be reused later, for efficiency
         if self.real_embeddings is None:
             print(
                 f"Generating embeddings on dataset of real faces ({real_dataset_path})."
@@ -122,8 +79,11 @@ class Evaluator:
             print(
                 f"Writing computed embeddings to {real_dataset_path}//embeddings.pickle ."
             )
+
+            # Store the embeddings to be reused later
             with open(f"{real_dataset_path}//embeddings.pickle", "wb") as write_file:
                 pickle.dump(self.real_embeddings, write_file)
+
         if self.anon_embeddings is None:
             print(
                 f"Generating embeddings on dataset of anonymized faces ({anon_dataset_path})."
@@ -132,6 +92,8 @@ class Evaluator:
             print(
                 f"Writing computed embeddings to {anon_dataset_path}//embeddings.pickle ."
             )
+
+            # Store the embeddings to be reused later
             with open(f"{anon_dataset_path}//embeddings.pickle", "wb") as write_file:
                 pickle.dump(self.anon_embeddings, write_file)
 
@@ -151,9 +113,9 @@ class Evaluator:
         with open(cached_file, "rb") as cached_file_rb:
             return pickle.load(cached_file_rb)
 
-    def embed_faces(self, file_paths):
+    def embed_faces(self, file_paths: list) -> dict:
         """
-        Embed faces in a list of file paths.
+        Embed the faces found from a list of file paths.
 
         Parameters:
         - file_path (list): List of file paths of face images.
@@ -201,12 +163,12 @@ class Evaluator:
                 for i in range(len(embeddings)):
                     embed_dict[generate_key(valid_paths[i])] = embeddings[i]
         if warn_counter > 0:
-            print(f"Warning: {warn_counter} images' faces could not be detected.")
+            print(f"Warning: {warn_counter} images' faces could not be detected!")
         return embed_dict
 
-    def get_real_embedding(self, file_path: str):
+    def get_real_embedding(self, file_path: str) -> Any:
         """
-        Get the real face embedding for a given file.
+        Get the real face embedding for a given file path.
 
         Parameters:
         - file_path (str): The file path.
@@ -216,7 +178,7 @@ class Evaluator:
         """
         return self.real_embeddings[generate_key(file_path)]
 
-    def get_anon_embedding(self, file_path: str):
+    def get_anon_embedding(self, file_path: str) -> Any:
         """
         Get the anonymized face embedding for a given file path.
 
@@ -224,14 +186,14 @@ class Evaluator:
         - file_path (str): The file path.
 
         Returns:
-        - Any: The anonymized face embeddings.
+        - Any: The anonymized face embedding.
         """
         return self.anon_embeddings[generate_key(file_path)]
 
 
-def generate_key(file_path: str):
+def generate_key(file_path: str) -> str:
     """
-    Generate a unique key for a file path.
+    Generate a unique key based on file path.
 
     Parameter:
     - file_path (str): The file path.
@@ -239,9 +201,8 @@ def generate_key(file_path: str):
     Returns:
     - str: The generated key.
     """
-    # will the folder + filename suffice?
     f_path = Path(file_path)
-    # This avoids any issues with operating system file delimiters,
-    # but lets us still use file paths as keys
+
+    # This avoids issues with OS file delimiters while using paths as keys
     key = f"{f_path.parent.stem}___{f_path.stem}"
     return key

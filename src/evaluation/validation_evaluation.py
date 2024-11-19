@@ -1,34 +1,3 @@
-"""
-File: validation_evaluation.py
-
-This file contains functions for validating a face recognition system using a combination
-of positive and negative pairs of face images. It evaluates the system's performance on
-anonymized face pairs using a computed threshold.
-
-Libraries and Modules:
-- numpy: Library for numerical operations.
-- tqdm: A library for displaying progress bars during iteration
-- argparse: Library for parsing command-line arguments
-- os: Provides a way of interacting with the operating system.
-- pathlib.Path: Class for representing and manipulating filesystem paths.
-- pandas: Data manipulation and analysis library.
-- src.utils: Custom module providing utility functions.
-- src.dataset.dataset_identity_lookup: Custom module providing the DatasetIdentityLookup class.
-- src.evaluation.evaluator: Custom module providing the Evaluator class.
-- src.privacy_mechanisms.privacy_mechanism: Custom module providing the PrivacyMechanism class.
-
-Usage:
-- Use the validation_evaluation function to perform validation on a face recognition using anonymized face pairs.
-- The function utilizes an Evaluator object for computing and storing embeddings of faces needed for evaluation.
-- The identity_lookup parameter provides a mechanism for associating identities with face images for evaluation.
-- The PrivacyMechanism class is used for privacy mechanisms applied to the face image.
-
-Note:
-- The validation process involves creating positive pairs of face images (with the same identity) and negative pairs (with different identities).
-- The ideal threshold for distinguishing between positive and negative is computed based on the embeddings of the real positive pairs.
-- The performance of the system is then evaluated on anonymized face pairs using the computed threshold.
-"""
-
 import argparse
 import os
 from pathlib import Path
@@ -48,7 +17,7 @@ def validation_evaluation(
     identity_lookup: DatasetIdentityLookup,
     p_mech_object: PrivacyMechanism,
     args: argparse.Namespace,
-):
+) -> None:
     """
     Validate a face recognition system using positive and negative pairs of face images.
 
@@ -62,6 +31,7 @@ def validation_evaluation(
     - None
     """
     print("================ Validation ================")
+
     real_pairs, anon_pairs = create_pairs(
         evaluator, identity_lookup, args.num_validation_pairs, args.random_seed
     )
@@ -76,7 +46,7 @@ def create_pairs(
     identity_lookup: DatasetIdentityLookup,
     number_of_pairs=100,
     random_seed=69,
-):
+) -> tuple:
     """
     Create positive and negative pairs of face images for validation.
 
@@ -106,10 +76,10 @@ def create_pairs(
         face1_idx = random_generator.integers(0, num_keys)
         face1_key = real_keys[face1_idx]
         face1_id = identity_lookup.lookup(face1_key)
+
         # find a second image
-        # there is a chance we can't find a second in reasonable time
-        # (if few embeddings were given for a specific person), so we'll
-        # have a skip tolerance
+        # NOTE: if few embeddings were given for a specific person,
+        # can't easily be found, so a timeout is implemented
         inner_count = 0
         while inner_count < 10000:
             # find a distinct face2 with the same identity
@@ -155,6 +125,7 @@ def create_pairs(
         face1_idx = random_generator.integers(0, num_keys)
         face1_key = real_keys[face1_idx]
         face1_id = identity_lookup.lookup(face1_key)
+
         # find a second image
         while True:
             # find a distinct face2 with the same identity
@@ -226,7 +197,6 @@ def predict_pairs(embedding_pairs, threshold: int):
     - list: A list containg tuples of (key1, key2, embedding1, embedding2, label, distance, predicted_label).
     """
     # embedding_pairs is a list containing tuples of (key1, key2, embedding1, embedding2, label)
-    # which are compared to see if we predict the same individual or different ones
     pbar = tqdm(
         range(len(embedding_pairs)), desc="Running prediction on validation set."
     )
@@ -255,7 +225,7 @@ def report_results(
     - args (argparse.Namespace): An argparse Namespace object containing command-line arguments.
 
     Returns:
-    - None
+    - None.  Writes results to Results//Privacy//*.
     """
     data = []
     for pair in embedding_pairs:
