@@ -32,6 +32,17 @@ def rank_k_evaluation(
     """
     print("================ Rank-K Identity Matching ================")
 
+    if args.anonymized_dataset is None:
+        out_path = f"Results//Privacy//{args.evaluation_method}//{args.dataset}_{p_mech_object.get_suffix()}.csv"
+    else:
+        out_path = (
+            f"Results//Privacy//{args.evaluation_method}//{args.anonymized_dataset}.csv"
+        )
+
+    if os.path.exists(out_path):
+        print(f"{out_path} exists, skipping.")
+        return
+
     query_results = []  # stores a list of tuples (query_key, lowest_achieved_k)
 
     # Iterate through every face of the query dataset
@@ -90,13 +101,6 @@ def rank_k_evaluation(
     for k in [1, 5, 10, 20, 30, 40, 50]:
         sum_valid = np.sum(df["k"] < k)
         print(f"Accuracy @ k={k:02d}:\t{sum_valid / len(query_results):.2%}")
-
-    if args.anonymized_dataset is None:
-        out_path = f"Results//Privacy//{args.evaluation_method}//{args.dataset}_{p_mech_object.get_suffix()}.csv"
-    else:
-        out_path = (
-            f"Results//Privacy//{args.evaluation_method}//{args.anonymized_dataset}.csv"
-        )
 
     os.makedirs(Path(out_path).parent, exist_ok=True)
     print(f"Writing results to {out_path}.")

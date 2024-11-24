@@ -24,7 +24,7 @@ def validation_evaluation(
     Parameters:
     - evaluator (Evaluator): An instance of the Evaluator object.
     - identity_lookup (DatasetIdentityLookup): An instance of the DatasetIdentityLookup class.
-    - p_match_object (PrivacyMechanism): An instance of the PrivacyMechanism class.
+    - p_mech_object (PrivacyMechanism): An instance of the PrivacyMechanism class.
     - args (argparse.Namespace): An argparse Namespace object containing command-line arguments.
 
     Returns:
@@ -32,13 +32,24 @@ def validation_evaluation(
     """
     print("================ Validation ================")
 
+    if args.anonymized_dataset is None:
+        out_path = f"Results//Privacy//{args.evaluation_method}//{args.dataset}_{p_mech_object.get_suffix()}.csv"
+    else:
+        out_path = (
+            f"Results//Privacy//{args.evaluation_method}//{args.anonymized_dataset}.csv"
+        )
+
+    if os.path.exists(out_path):
+        print(f"{out_path} exists, skipping.")
+        return
+
     real_pairs, anon_pairs = create_pairs(
         evaluator, identity_lookup, args.num_validation_pairs, args.random_seed
     )
     ideal_threshold = compute_threshold(real_pairs)
     print(f"Ideal threshold = {ideal_threshold}")
     anon_pairs = predict_pairs(anon_pairs, ideal_threshold)
-    report_results(anon_pairs, p_mech_object, args)
+    report_results(anon_pairs, p_mech_object, out_path, args)
 
 
 def create_pairs(
@@ -214,6 +225,7 @@ def predict_pairs(embedding_pairs, threshold: int):
 def report_results(
     embedding_pairs,
     p_mech_object: PrivacyMechanism,
+    out_path: str,
     args: argparse.Namespace,
 ):
     """
@@ -246,12 +258,6 @@ def report_results(
         f"Accuracy out of {args.num_validation_pairs}:\t{df['result'].sum() / args.num_validation_pairs:.2%}"
     )
 
-    if args.anonymized_dataset is None:
-        out_path = f"Results//Privacy//{args.evaluation_method}//{args.dataset}_{p_mech_object.get_suffix()}.csv"
-    else:
-        out_path = (
-            f"Results//Privacy//{args.evaluation_method}//{args.anonymized_dataset}.csv"
-        )
     os.makedirs(Path(out_path).parent, exist_ok=True)
     print(f"Writing results to {out_path}.")
     df.to_csv(out_path)

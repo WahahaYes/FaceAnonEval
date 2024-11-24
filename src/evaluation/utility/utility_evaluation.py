@@ -29,6 +29,18 @@ def utility_evaluation(
     """
 
     print("================ Utility Evaluation ================")
+
+    if args.anonymized_dataset is None:
+        out_path = f"Results//Utility//{args.evaluation_method}//{args.dataset}_{p_mech_object.get_suffix()}.csv"
+    else:
+        out_path = (
+            f"Results//Utility//{args.evaluation_method}//{args.anonymized_dataset}.csv"
+        )
+
+    if os.path.exists(out_path):
+        print(f"{out_path} exists, skipping.")
+        return
+
     utils.load_utility_models()
 
     # Compute a list of anonymized face images, then get the corresponding real faces
@@ -102,12 +114,6 @@ def utility_evaluation(
     print(f"Race Acc: {df['race'].mean():.4f}")
     print(f"Gender Acc: {df['gender'].mean():.4f}")
 
-    if args.anonymized_dataset is None:
-        out_path = f"Results//Utility//{args.evaluation_method}//{args.dataset}_{p_mech_object.get_suffix()}.csv"
-    else:
-        out_path = (
-            f"Results//Utility//{args.evaluation_method}//{args.anonymized_dataset}.csv"
-        )
     os.makedirs(Path(out_path).parent, exist_ok=True)
     print(f"Writing results to {out_path}.")
     df.to_csv(out_path)

@@ -30,11 +30,22 @@ def lfw_validation_evaluation(
     """
     print("================ LFW Validation ================")
 
+    if args.anonymized_dataset is None:
+        out_path = f"Results//Privacy//{args.evaluation_method}//{args.dataset}_{p_mech_object.get_suffix()}.csv"
+    else:
+        out_path = (
+            f"Results//Privacy//{args.evaluation_method}//{args.anonymized_dataset}.csv"
+        )
+
+    if os.path.exists(out_path):
+        print(f"{out_path} exists, skipping.")
+        return
+
     real_pairs, anon_pairs = lfw_create_pairs(evaluator)
     ideal_threshold = compute_threshold(real_pairs)
     print(f"Ideal threshold = {ideal_threshold}")
     anon_pairs = predict_pairs(anon_pairs, ideal_threshold)
-    report_results(anon_pairs, p_mech_object, args)
+    report_results(anon_pairs, p_mech_object, out_path, args)
 
 
 def lfw_create_pairs(evaluator: Evaluator):
