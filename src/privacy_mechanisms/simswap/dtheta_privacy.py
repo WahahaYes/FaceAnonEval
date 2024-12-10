@@ -3,8 +3,8 @@ import numpy as np
 import scipy
 import torch
 import torch.nn.functional as F
-from scipy.stats import uniform_direction, vonmises_fisher
 
+from src.anonymization import anonymize
 from src.privacy_mechanisms.simswap.identity_dp import generate_embedding
 from src.privacy_mechanisms.simswap.inference import (
     _totensor,
@@ -17,32 +17,19 @@ def inference_dtheta_privacy(
     img_cv2,
     theta: float = 90,
     epsilon: float = 1.0,
-    random_seed: float = 69,
-    UD=uniform_direction(dim=512),
 ):
     model = instantiate_model()
     id_embedding = generate_embedding(img_cv2)
+    true_dtype = id_embedding.dtype
+    id_embedding = anonymize(id_embedding, epsilon=epsilon, theta=theta)
 
     id_emb_numpy = id_embedding.cpu().detach().numpy()
     # reshape from (1, 512) to (512,)
     rotated = id_emb_numpy[0, :]
 
-    # first, apply a random rotation to satisfy d_theta privacy
-    if epsilon > 0:
-        rotated = rotated / np.linalg.norm(rotated)
-        vmf = vonmises_fisher(mu=rotated, kappa=epsilon, seed=random_seed)
-        rotated = vmf.rvs()[0, :]
-    elif epsilon == 0:
-        rotated = UD.rvs()
-
-    # then apply a follow-up rotation
-    if theta > 0:
-        theta_rads = theta * np.pi / 180
-        rotated = rotate_embedding(rotated, theta_rads)
-
     # pass through to generator
     id_embedding = torch.tensor(
-        rotated.reshape((1, 512)), dtype=id_embedding.dtype, device=id_embedding.device
+        rotated.reshape((1, 512)), dtype=true_dtype, device=id_embedding.device
     )
     id_embedding = F.normalize(id_embedding, p=2, dim=1)
 

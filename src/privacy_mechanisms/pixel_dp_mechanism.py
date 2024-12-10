@@ -35,7 +35,6 @@ class PixelDPMechanism(DetectFaceMechanism):
         self,
         epsilon: float = 1,
         b: int = 1,
-        random_seed: int = 69,
     ) -> None:
         """
         Initialize the PixelDPMechanism.
@@ -49,7 +48,6 @@ class PixelDPMechanism(DetectFaceMechanism):
         super(PixelDPMechanism, self).__init__()
         self.epsilon = epsilon
         self.b = b
-        np.random.seed(seed=random_seed)
 
     def process(self, img: torch.tensor) -> torch.tensor:
         """

@@ -45,7 +45,6 @@ class SimswapMechanism(DetectFaceMechanism):
     def __init__(
         self,
         faceswap_strategy: str = "random",
-        random_seed: int = 69,
         sample_size: int = 32,
     ) -> None:
         """
@@ -59,9 +58,7 @@ class SimswapMechanism(DetectFaceMechanism):
         super(SimswapMechanism, self).__init__()
         self.faceswap_strategy = faceswap_strategy
         self.pad_ratio = 0.15
-        self.random_seed = random_seed
         self.sample_size = sample_size
-        np.random.seed(seed=self.random_seed)
 
         self.id_face_paths = glob.glob("Datasets//CelebA//**//*.jpg", recursive=True)[
             182638:

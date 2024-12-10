@@ -43,7 +43,6 @@ class MetricPrivacyMechanism(DetectFaceMechanism):
         self,
         epsilon: float = 1,
         k: int = 4,
-        random_seed: int = 69,
     ) -> None:
         """
         Initialize the MetricPrivacyMechanism.
@@ -56,7 +55,6 @@ class MetricPrivacyMechanism(DetectFaceMechanism):
         super(MetricPrivacyMechanism, self).__init__()
         self.epsilon = epsilon
         self.k = k
-        np.random.seed(seed=random_seed)
 
         # Estimate sensitivities of SVD singular values
         self.sensitivities = self.estimate_sensitivities()

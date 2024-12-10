@@ -22,9 +22,7 @@ Note:
 """
 
 import cv2
-import numpy as np
 import torch
-from scipy.stats import uniform_direction
 
 import src.utils as utils
 from src.privacy_mechanisms.detect_face_mechanism import DetectFaceMechanism
@@ -42,7 +40,6 @@ class DThetaPrivacyMechanism(DetectFaceMechanism):
         self,
         theta: float = 90,
         epsilon: float = 1.0,
-        random_seed: int = 69,
     ) -> None:
         """
         Initialize the DThetaPrivacyMechanism.
@@ -57,9 +54,6 @@ class DThetaPrivacyMechanism(DetectFaceMechanism):
         self.epsilon = epsilon
 
         self.pad_ratio = 0.15
-        self.random_seed = random_seed
-        np.random.seed(seed=self.random_seed)
-        self.UD = uniform_direction(dim=512, seed=self.random_seed)
 
     def process(self, img: torch.tensor) -> torch.tensor:
         """
@@ -84,7 +78,9 @@ class DThetaPrivacyMechanism(DetectFaceMechanism):
                 face_cv2 = utils.padded_crop(img_cv2, bbox, padding=padding)
 
                 result_cv2 = inference_dtheta_privacy(
-                    face_cv2, self.theta, self.epsilon, self.random_seed, self.UD
+                    face_cv2,
+                    self.theta,
+                    self.epsilon,
                 )
                 result_cv2 = cv2.cvtColor(result_cv2, cv2.COLOR_RGB2BGR)
 

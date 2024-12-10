@@ -137,12 +137,6 @@ class CustomArgumentParser:
             type=int,
             help="The batch size used by privacy mechanisms and facial recognition networks.",
         )
-        parser.add_argument(
-            "--random_seed",
-            default=69,
-            type=int,
-            help="Random seed used in stochastic operations for reproducibility.",
-        )
         # --------------------------------------------------------------------------
         # arguments applied to specific privacy mechanisms
         parser.add_argument(
@@ -298,13 +292,11 @@ class CustomArgumentParser:
                 p_mech_object = PixelDPMechanism(
                     epsilon=self.args.dp_epsilon,
                     b=self.args.pixel_dp_b,
-                    random_seed=self.args.random_seed,
                 )
             case "metric_privacy":
                 p_mech_object = MetricPrivacyMechanism(
                     epsilon=self.args.dp_epsilon,
                     k=self.args.metric_privacy_k,
-                    random_seed=self.args.random_seed,
                 )
             case "simple_mustache":
                 p_mech_object = SimpleMustacheMechanism()
@@ -313,19 +305,16 @@ class CustomArgumentParser:
             case "simswap":
                 p_mech_object = SimswapMechanism(
                     faceswap_strategy=self.args.faceswap_strategy,
-                    random_seed=self.args.random_seed,
                     sample_size=self.args.ssim_sample_size,
                 )
             case "identity_dp":
                 p_mech_object = IdentityDPMechanism(
                     epsilon=self.args.dp_epsilon,
-                    random_seed=self.args.random_seed,
                 )
             case "dtheta_privacy":
                 p_mech_object = DThetaPrivacyMechanism(
                     theta=self.args.theta,
                     epsilon=self.args.dp_epsilon,
-                    random_seed=self.args.random_seed,
                 )
             case _:
                 raise Exception(

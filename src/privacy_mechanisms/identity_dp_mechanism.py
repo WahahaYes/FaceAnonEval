@@ -21,7 +21,6 @@ Note:
 """
 
 import cv2
-import numpy as np
 import torch
 
 import src.utils as utils
@@ -37,7 +36,6 @@ class IdentityDPMechanism(DetectFaceMechanism):
     def __init__(
         self,
         epsilon: float = 1.0,
-        random_seed: int = 69,
     ) -> None:
         """
         Initialize the IdentityDPMechanism.
@@ -49,7 +47,6 @@ class IdentityDPMechanism(DetectFaceMechanism):
         super(IdentityDPMechanism, self).__init__()
         self.epsilon = epsilon
         self.pad_ratio = 0.15
-        np.random.seed(seed=random_seed)
 
     def process(self, img: torch.tensor) -> torch.tensor:
         """
