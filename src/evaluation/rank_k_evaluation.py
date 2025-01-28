@@ -80,7 +80,7 @@ def rank_k_evaluation(
                 k_offset += 1
                 continue
             # Skip the image corresponding to our exact query image
-            if real_key == query_key:
+            if not args.compare_exact_query and real_key == query_key:
                 k_offset += 1
                 continue
 
@@ -89,6 +89,7 @@ def rank_k_evaluation(
                     {
                         "query_key": query_key,
                         "k": k - k_offset,
+                        "similarity": utils.embedding_distance(query_embedding, real_embedding)
                     }
                 )
                 break

@@ -48,10 +48,15 @@ def utility_evaluation(
         anon_paths = glob.glob(
             f"Anonymized Datasets//{args.dataset}_{p_mech_object.get_suffix()}//**//*.jpg",
             recursive=True,
+        ) + glob.glob(
+            f"Anonymized Datasets//{args.dataset}_{p_mech_object.get_suffix()}//**//*.png",
+            recursive=True,
         )
     else:
         anon_paths = glob.glob(
             f"Anonymized Datasets//{args.anonymized_dataset}//**//*.jpg", recursive=True
+        ) + glob.glob(
+            f"Anonymized Datasets//{args.anonymized_dataset}//**//*.png", recursive=True
         )
 
     real_paths = []
@@ -102,6 +107,14 @@ def utility_evaluation(
                 "age": age_score,
                 "race": race_score,
                 "gender": gender_score,
+                "real_emotion": this_real_dict["emotion"],
+                "anon_emotion": this_anon_dict["emotion"],
+                "real_age": this_real_dict["age"],
+                "anon_age": this_anon_dict["age"],
+                "real_race": this_real_dict["race"],
+                "anon_race": this_anon_dict["race"],
+                "real_gender": this_real_dict["gender"],
+                "anon_gender": this_anon_dict["gender"]
             }
         )
 

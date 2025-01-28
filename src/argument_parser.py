@@ -34,6 +34,7 @@ from typing import Iterator
 
 from src.dataset.celeba_identity_lookup import CelebAIdentityLookup
 from src.dataset.dataset_identity_lookup import DatasetIdentityLookup
+from src.dataset.codec_identity_lookup import CodecIdentityLookup
 from src.dataset.face_dataset import FaceDataset, dataset_iterator
 from src.dataset.lfw_identity_lookup import LFWIdentityLookup
 from src.privacy_mechanisms.dtheta_privacy_mechanism import (
@@ -100,7 +101,7 @@ class CustomArgumentParser:
         # shared arguments
         parser.add_argument(
             "--dataset",
-            choices=["CelebA", "CelebA_test", "lfw"],
+            choices=["CelebA", "CelebA_test", "lfw", "codec"],
             default="CelebA",
             type=str,
             help="The benchmark dataset to process, which should be placed into the 'Datasets' folder.",
@@ -227,6 +228,12 @@ class CustomArgumentParser:
                 type=int,
                 help="The number of face pairs to build up when creating a validation set.",
             )
+            parser.add_argument(
+                "--compare_exact_query",
+                default=False,
+                type=bool,
+                help="Whether to skip the query image with the exact pose as the reference."
+            )
 
         self.args = parser.parse_args()
         print(f"Arguments:\n{self.args}")
@@ -265,6 +272,9 @@ class CustomArgumentParser:
             case "lfw":
                 face_dataset = FaceDataset("Datasets//lfw", filetype=".jpg")
                 dataset_identity_lookup = LFWIdentityLookup()
+            case "codec":
+                face_dataset = FaceDataset("Datasets//codec", filetype=".png")
+                dataset_identity_lookup = CodecIdentityLookup()
             case _:
                 raise Exception(f"Invalid Dataset argument ({self.args.dataset})")
 

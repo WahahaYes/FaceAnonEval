@@ -48,6 +48,7 @@ if __name__ == "__main__":
     evaluator = Evaluator(
         real_dataset_path=real_dataset_path,
         anon_dataset_path=anon_dataset_path,
+        file_extension=face_dataset.filetype,
         batch_size=args.batch_size,
         overwrite_embeddings=args.overwrite_embeddings,
         celeba_test_set_only=args.celeba_test_set_only,

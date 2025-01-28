@@ -4,10 +4,14 @@ import torch
 from scipy.stats import uniform_direction
 
 
-def anonymize(embedding_torch, epsilon=1, theta=90):
+def anonymize(embedding_torch, epsilon=1, theta=90, dims=512):
     # reshape to a 512 numpy array
-    device = embedding_torch.device
-    embedding = embedding_torch.cpu().detach().numpy()
+    is_torch = torch.is_tensor(embedding_torch)
+    if is_torch:
+        device = embedding_torch.device
+        embedding = embedding_torch.cpu().detach().numpy()
+    else:
+        embedding = embedding_torch
     embedding = np.squeeze(embedding)
     real_mean, real_std = np.mean(embedding), np.std(embedding)
 
@@ -20,7 +24,7 @@ def anonymize(embedding_torch, epsilon=1, theta=90):
         sample = np.asarray(sample)
         rotated = np.squeeze(sample)
     elif epsilon == 0:
-        UD = uniform_direction(dim=512)
+        UD = uniform_direction(dim=dims)
         rotated = UD.rvs()
     else:
         rotated = embedding
@@ -28,7 +32,7 @@ def anonymize(embedding_torch, epsilon=1, theta=90):
     # then apply a follow-up rotation
     if theta > 0:
         theta_rads = theta * np.pi / 180
-        rotated = rotate_embedding(rotated, theta_rads)
+        rotated = rotate_embedding(rotated, theta_rads, dims=dims)
 
     # match std to the original
     # rotated = rotated - np.mean(rotated)
@@ -36,28 +40,31 @@ def anonymize(embedding_torch, epsilon=1, theta=90):
     rotated = rotated * real_std
     # rotated = rotated / np.linalg.norm(rotated)
     # rotated = rotated + real_mean
+    
+    if is_torch:
+        embedding_torch = torch.from_numpy(rotated.reshape(1, -1))
+        embedding_torch = embedding_torch.to(device=device)
 
-    embedding_torch = torch.from_numpy(rotated.reshape(1, -1))
-    embedding_torch = embedding_torch.to(device=device)
+        return embedding_torch
+    else:
+        return rotated.reshape(1, -1)
 
-    return embedding_torch
 
-
-def rotate_embedding(embedding: np.ndarray, theta_rads: float) -> np.ndarray:
+def rotate_embedding(embedding: np.ndarray, theta_rads: float, dims=512) -> np.ndarray:
     # sample a random vector in R^512
-    x1 = np.random.uniform(low=-1.0, high=1.0, size=512)
+    x1 = np.random.uniform(low=-1.0, high=1.0, size=dims)
     # generate orthonormal basis between
     orth = scipy.linalg.orth(np.array([x1, embedding]).T)
     # extract our unit basis vectors
     x1 = orth[:, 0]
-    x1 = x1.reshape((512, 1))
+    x1 = x1.reshape((dims, 1))
     x1 = x1 / np.linalg.norm(x1)
     x2 = orth[:, 1]
-    x2 = x2.reshape((512, 1))
+    x2 = x2.reshape((dims, 1))
     x2 = x2 / np.linalg.norm(x2)
     # compute exponential rotation matrix
     e_A = (
-        np.identity(512)
+        np.identity(dims)
         + (np.matmul(x2, x1.T) - np.matmul(x1, x2.T)) * np.sin(theta_rads)
         + (np.matmul(x1, x1.T) + np.matmul(x2, x2.T)) * (np.cos(theta_rads) - 1)
     )

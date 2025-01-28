@@ -65,6 +65,7 @@ class FaceDataset(Dataset):
         """
         # We load the paths to all images at initialization
         self.dir = dir
+        self.filetype = filetype
         self.img_paths = []
         self.transform = transform
         if self.transform is None:

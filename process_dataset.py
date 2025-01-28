@@ -19,6 +19,7 @@ Usage:
 import os
 
 import cv2
+import glob
 from tqdm import tqdm
 
 from src.argument_parser import CustomArgumentParser
@@ -43,6 +44,14 @@ if __name__ == "__main__":
     )
     # Create the output folder if it doesn't exist
     os.makedirs(output_folder, exist_ok=True)
+
+    num_files = len(glob.glob(f"{output_folder}//**/*", recursive=True))
+
+    print(f"Output folder ({output_folder}) has {num_files} files, source dataset has {len(d_iter) * args.batch_size}")
+
+    if num_files > 0.9 * len(d_iter) * args.batch_size:
+        print(f"{output_folder} exists and has many existing images, skipping.")
+        exit()
 
     # iterate over the dataset and apply the privacy mechanism
     for imgs, img_paths in tqdm(
