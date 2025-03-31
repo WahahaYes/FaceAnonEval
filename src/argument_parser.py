@@ -101,7 +101,7 @@ class CustomArgumentParser:
         # shared arguments
         parser.add_argument(
             "--dataset",
-            choices=["CelebA", "CelebA_test", "lfw", "codec"],
+            choices=["CelebA", "CelebA_test", "lfw", "codec", "codecpca"],
             default="CelebA",
             type=str,
             help="The benchmark dataset to process, which should be placed into the 'Datasets' folder.",
@@ -274,6 +274,9 @@ class CustomArgumentParser:
                 dataset_identity_lookup = LFWIdentityLookup()
             case "codec":
                 face_dataset = FaceDataset("Datasets//codec", filetype=".png")
+                dataset_identity_lookup = CodecIdentityLookup()
+            case "codecpca":
+                face_dataset = FaceDataset("Datasets//codecpca", filetype=".png")
                 dataset_identity_lookup = CodecIdentityLookup()
             case _:
                 raise Exception(f"Invalid Dataset argument ({self.args.dataset})")

@@ -71,3 +71,20 @@ def inference(attr_img_cv2, id_img_cv2):
         swap_result = model(None, attr_img, id_embedding, None, True)[0]
     result_cv2 = img_tensor_to_cv2(swap_result)
     return result_cv2
+
+def embed_id(id_img_cv2):
+    model = instantiate_model()
+
+    # reformat identity image
+    id_img_pil = Image.fromarray(cv2.cvtColor(id_img_cv2, cv2.COLOR_BGR2RGB))
+    id_img = transformer_Arcface(id_img_pil)
+    id_img = id_img.view(-1, id_img.shape[0], id_img.shape[1], id_img.shape[2])
+
+    # create the identity embedding
+    img_id_resize = F.interpolate(id_img, size=(112, 112))
+    if torch.cuda.is_available():
+        img_id_resize = img_id_resize.cuda()
+    id_embedding = model.netArc(img_id_resize)
+    id_embedding = F.normalize(id_embedding, p=2, dim=1)
+
+    return id_embedding
