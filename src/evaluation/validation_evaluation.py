@@ -11,6 +11,9 @@ from src.dataset.dataset_identity_lookup import DatasetIdentityLookup
 from src.evaluation.evaluator import Evaluator
 from src.privacy_mechanisms.privacy_mechanism import PrivacyMechanism
 
+from sklearn.metrics import roc_curve
+
+
 
 def validation_evaluation(
     evaluator: Evaluator,
@@ -252,11 +255,19 @@ def report_results(
             }
         )
     df = pd.DataFrame(data)
+    df_matches = df[df["real_label"] == 1]
     print("================ Results ================")
-    print(f"Validation accuracy (N={len(df)}):\t{df['result'].mean():.2%}")
-    print(
-        f"Accuracy out of {args.num_validation_pairs}:\t{df['result'].sum() / args.num_validation_pairs:.2%}"
-    )
+    print(f"Validation accuracy (N={len(df_matches)}):\t{df_matches['result'].mean():.2%}")
+
+    y = np.asarray(df["real_label"].to_list())
+    y_pred = 1 - np.asarray(df["distance"].to_list())
+    fpr, tpr, threshold = roc_curve(y, y_pred, pos_label=1)
+    fnr = 1 - tpr
+    eer_threshold = threshold[np.nanargmin(np.absolute((fnr - fpr)))]
+    EER = fpr[np.nanargmin(np.absolute((fnr - fpr)))]
+    EER2 = fnr[np.nanargmin(np.absolute((fnr - fpr)))]
+
+    print(f"EER threshold: {eer_threshold}, EER1={EER:.2%}, EER2={EER2:.2%}")
 
     os.makedirs(Path(out_path).parent, exist_ok=True)
     print(f"Writing results to {out_path}.")

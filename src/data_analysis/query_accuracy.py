@@ -21,6 +21,8 @@ import os
 import numpy as np
 import pandas as pd
 
+from sklearn.metrics import roc_curve
+
 
 def query_accuracy(
     evaluation_method: str,
@@ -138,11 +140,21 @@ def _query_validation(
     - float: The accuracy result.
     """
     df = pd.read_csv(csv_path)
+    df_matches = df[df["real_label"] == 1]
 
     if mode == "sum":
-        return np.sum(df["result"] == 1)
+        return np.sum(df_matches["result"] == 1)
     elif mode == "mean":
-        return np.sum(df["result"] == 1) / denominator
+        return np.sum(df_matches["result"] == 1) / denominator
+    elif mode == "eer":
+        y = df["real_label"].to_list()
+        y_pred = df["pred_label"].to_list()
+        fpr, tpr, threshold = roc_curve(y, y_pred, pos_label=1)
+        fnr = 1 - tpr
+        eer_threshold = threshold[np.nanargmin(np.absolute((fnr - fpr)))]
+        EER = fpr[np.nanargmin(np.absolute((fnr - fpr)))]
+        return EER
+
 
 
 def _query_utility(

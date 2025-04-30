@@ -90,7 +90,7 @@ def lfw_create_pairs(evaluator: Evaluator):
                 print(f"Warning: could not construct embedding pair, {e}")
 
             # if it is a positive pair of faces, add to the test set
-            if len(contents) == 3:
+            if True: # len(contents) == 3:
                 try:
                     anon_pairs.append(
                         (

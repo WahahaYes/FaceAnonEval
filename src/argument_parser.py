@@ -108,7 +108,7 @@ class CustomArgumentParser:
         )
         parser.add_argument(
             "--celeba_test_set_only",
-            default=True,
+            default=False,
             type=bool,
             choices=[True, False],
             help="If using CelebA, whether to process only the test set or to process all 200k faces.  "
@@ -213,6 +213,12 @@ class CustomArgumentParser:
                 help="The evaluation methodology to use.  Some methods may rely on other arguments as hyperparameters.",
             )
             parser.add_argument(
+                "--rank_k_one_image_per",
+                default=False,
+                type=bool,
+                help="Whether to only use a single image for rank k evaluation (to speed up results).",
+            )
+            parser.add_argument(
                 "--overwrite_embeddings",
                 default=False,
                 choices=[True, False],
@@ -232,7 +238,7 @@ class CustomArgumentParser:
                 "--compare_exact_query",
                 default=False,
                 type=bool,
-                help="Whether to skip the query image with the exact pose as the reference."
+                help="Whether to skip the query image with the exact pose as the reference.",
             )
 
         self.args = parser.parse_args()

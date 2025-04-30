@@ -5,6 +5,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
+import random
 
 from src import utils
 from src.dataset.dataset_identity_lookup import DatasetIdentityLookup
@@ -45,6 +46,30 @@ def rank_k_evaluation(
 
     query_results = []  # stores a list of tuples (query_key, lowest_achieved_k)
 
+    refs = []
+    real_embeddings_new = {}
+    anon_paths = list(evaluator.anon_paths)
+    anon_paths_new = []
+
+    # put one of every ID into the new list
+    for p in anon_paths:
+        try:
+            label = identity_lookup.lookup(p)
+            if label not in refs:
+                key_p = generate_key(p)
+                if key_p in evaluator.real_embeddings and key_p in evaluator.anon_embeddings:
+                    real_embeddings_new[generate_key(p)] = evaluator.get_real_embedding(p)
+                    anon_paths_new.append(p)
+                    refs.append(label)
+        except:
+            pass
+    
+    # this flag compares one query against the reference set
+    if args.rank_k_one_image_per:
+        # evaluator.real_embeddings = real_embeddings_new
+        evaluator.anon_paths = anon_paths_new
+
+
     # Iterate through every face of the query dataset
     pbar = tqdm(evaluator.anon_paths, desc="Iterating over query dataset.")
     for query_path in pbar:
@@ -56,12 +81,12 @@ def rank_k_evaluation(
             query_label = identity_lookup.lookup(query_path)
         except Exception:
             continue
-        if query_key not in evaluator.real_embeddings:
-            # the face was not embedded on the benchmark
-            continue
-        if query_key not in evaluator.anon_embeddings:
-            # the face was not embedded after being anonymized
-            continue
+        # if query_key not in evaluator.real_embeddings:
+        #     # the face was not embedded on the benchmark
+        #     continue
+        # if query_key not in evaluator.anon_embeddings:
+        #     # the face was not embedded after being anonymized
+        #     continue
 
         query_embedding = evaluator.get_anon_embedding(query_path)
         # find the closest matches in the reference dataset
@@ -89,7 +114,9 @@ def rank_k_evaluation(
                     {
                         "query_key": query_key,
                         "k": k - k_offset,
-                        "similarity": utils.embedding_distance(query_embedding, real_embedding)
+                        "similarity": utils.embedding_distance(
+                            query_embedding, real_embedding
+                        ),
                     }
                 )
                 break
@@ -102,6 +129,7 @@ def rank_k_evaluation(
     for k in [1, 5, 10, 20, 30, 40, 50]:
         sum_valid = np.sum(df["k"] < k)
         print(f"Accuracy @ k={k:02d}:\t{sum_valid / len(query_results):.2%}")
+    print(f"Detection rate: {len(df) / len(evaluator.anon_paths):.2%}")
 
     os.makedirs(Path(out_path).parent, exist_ok=True)
     print(f"Writing results to {out_path}.")
