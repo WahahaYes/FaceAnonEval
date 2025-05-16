@@ -5,6 +5,10 @@ cmd2="python evaluate_mechanism.py --dataset lfw --evaluation_method lfw_validat
 # no mechanism
 $cmd2 --anonymized_dataset ../Datasets/lfw 
 
+# random sampling
+$cmd1 --privacy_mechanism dtheta_privacy --theta 0 --dp_epsilon 0
+$cmd2 --privacy_mechanism dtheta_privacy --theta 0 --dp_epsilon 0
+
 # pixeldp strong
 $cmd1 --privacy_mechanism pixel_dp --pixel_dp_b 16 --dp_epsilon 1
 $cmd2 --privacy_mechanism pixel_dp --pixel_dp_b 16 --dp_epsilon 1

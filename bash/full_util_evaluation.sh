@@ -1,6 +1,6 @@
 
 cmd1="python process_dataset.py --dataset CelebA_test --batch_size 16"
-cmd2="python evaluate_mechanism.py --dataset CelebA_test --evaluation_method rank_k --batch_size 16" 
+cmd2="python evaluate_mechanism.py --dataset CelebA_test --evaluation_method utility --batch_size 16" 
 
 # no mechanism
 $cmd2 --anonymized_dataset ../Datasets/CelebA_test

@@ -88,7 +88,11 @@ def rank_k_evaluation(
         #     # the face was not embedded after being anonymized
         #     continue
 
-        query_embedding = evaluator.get_anon_embedding(query_path)
+        try:
+            query_embedding = evaluator.get_anon_embedding(query_path)
+        except Exception:
+            continue
+        
         # find the closest matches in the reference dataset
         sorted_vals = sorted(
             evaluator.real_embeddings.items(),

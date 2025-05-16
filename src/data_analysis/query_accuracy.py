@@ -46,7 +46,7 @@ def query_accuracy(
     Returns:
     - dict | float: The accuracy results as a dictionary or float.
     """
-    assert mode in ["sum", "mean"], "Mode should be either sum or mean!"
+    assert mode in ["sum", "mean", "eer"], "Mode should be either sum, mean, or eer!"
     if mode == "mean" and denominator is None:
         assert False, "Mode is mean but a denominator has not been passed."
 
@@ -147,13 +147,14 @@ def _query_validation(
     elif mode == "mean":
         return np.sum(df_matches["result"] == 1) / denominator
     elif mode == "eer":
-        y = df["real_label"].to_list()
-        y_pred = df["pred_label"].to_list()
+        y = np.asarray(df["real_label"].to_list())
+        y_pred = 1 - np.asarray(df["distance"].to_list())
         fpr, tpr, threshold = roc_curve(y, y_pred, pos_label=1)
         fnr = 1 - tpr
         eer_threshold = threshold[np.nanargmin(np.absolute((fnr - fpr)))]
         EER = fpr[np.nanargmin(np.absolute((fnr - fpr)))]
-        return EER
+        EER2 = fnr[np.nanargmin(np.absolute((fnr - fpr)))]
+        return (EER + EER2) / 2
 
 
 
