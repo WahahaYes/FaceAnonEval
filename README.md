@@ -31,6 +31,9 @@ Privacy concerns related to facial recognition have become a critical aspect of 
    - [metric_privacy](src/privacy_mechanisms/metric_privacy_mechanism.py): Implements metric privacy to faces, MetricSVD (Fan 2019).
    - [pixel_dp](src/privacy_mechanisms/pixel_dp_mechanism.py): Applies Pixel Differential Privacy (PixelDP) to images (Fan 2018).
    - [simswap](src/privacy_mechanisms/simswap_mechanism.py): Applies face swapping for privacy preservation (Chen et al. 2020).
+   - Our publication implements our privacy alogrithms *AvatarLDP* and *AvatarRotation* on both the GHOST and Codec Avatar generation models.  Because each codebase has a complex set of dependencies, these were implemented as forks of the original repos.  If you incorporate these algorithm results into your comparisons, please refer to their respective READMEs and credit the authors appropriately.
+      - GHOST: [https://github.com/WahahaYes/anonghost](https://github.com/WahahaYes/anonghost)
+      - Codec Avatars: [https://github.com/WahahaYes/ava-256](https://github.com/WahahaYes/ava-256)
 
 - Evaluation Methodologies: 
    - [utility](src/evaluation/utility/utility_evaluation.py): Evaluates the utility of anonymized datasets based on age, race, gender, and emotion recognition.
