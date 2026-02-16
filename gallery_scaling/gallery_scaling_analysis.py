@@ -611,7 +611,7 @@ def main():
     # Configuration
     dataset_name = "CelebA_test"
     theta = 0.0
-    epsilon_values = [-1.0, 0.0, 1.0, 10.0, 100.0, 1000.0]
+    epsilon_values = [1.0, 10.0, 50.0, 100.0, 200.0]  # Match paper values
     gallery_sizes = [2, 5, 10, 20, 50, 100, 200, 500, 1000]
     num_trials = 10  # Increased for more robust results
     
