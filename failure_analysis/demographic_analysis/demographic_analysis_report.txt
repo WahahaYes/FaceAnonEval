@@ -1,0 +1,45 @@
+FAILURE CASE DEMOGRAPHIC ANALYSIS REPORT
+==================================================
+
+Analysis Date: 2026-02-16 18:13:14.610114
+Total Dataset Size: 19962 images
+Failure Cases: 2840 images
+Failure Rate: 14.23%
+
+STATISTICAL TESTS
+------------------------------
+
+AGE:
+  Test: Independent t-test
+  Statistic: -7.9311
+  p-value: 0.000000
+  Significant: Yes
+  Full Dataset: 27.40 ± 6.94
+  Failure Cases: 28.55 ± 8.77
+
+EMOTION:
+  Test: Chi-square test
+  Statistic: 22.7155
+  p-value: 0.000898
+  Significant: Yes
+
+RACE:
+  Test: Chi-square test
+  Statistic: 22.0400
+  p-value: 0.000515
+  Significant: Yes
+
+GENDER:
+  Test: Chi-square test
+  Statistic: 577.7154
+  p-value: 0.000000
+  Significant: Yes
+
+KEY FINDINGS
+--------------------
+
+Significant demographic differences found in:
+  - age
+  - emotion
+  - race
+  - gender

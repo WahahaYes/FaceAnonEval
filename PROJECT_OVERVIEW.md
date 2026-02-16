@@ -145,3 +145,76 @@ accuracy = query_accuracy(
 - Privacy mechanism parameters are encoded in filenames for easy identification
 - Both privacy (recognition resistance) and utility (attribute preservation) are evaluated
 - The framework supports custom datasets and evaluation methods
+
+## Gallery Scaling Analysis Patterns
+
+### Embedding and Identity Discovery
+
+**Critical Pattern**: When working with pre-computed embeddings and identity mappings:
+
+1. **Embedding Key Structure**: 
+   - Format: `{dataset_name}/{image_filename}.jpg`
+   - Example: `CelebA_test/000001.jpg` (not just `000001.jpg`)
+   - **Common Pitfall**: Missing dataset prefix causes "No embeddings found" errors
+
+2. **Identity Lookup Usage**:
+   ```python
+   from src.dataset.celeba_identity_lookup import CelebAIdentityLookup
+   
+   # Initialize with dataset name
+   identity_lookup = CelebAIdentityLookup("CelebA_test")
+   
+   # Map embedding keys to identities
+   identity = identity_lookup.get_identity(embedding_key)
+   # Returns: identity label (e.g., "0001")
+   ```
+
+3. **Gallery Construction Pattern**:
+   ```python
+   # Build identity-to-images mapping
+   identity_to_images = {}
+   for embedding_key in embeddings.keys():
+       identity = identity_lookup.get_identity(embedding_key)
+       if identity not in identity_to_images:
+           identity_to_images[identity] = []
+       identity_to_images[identity].append(embedding_key)
+   
+   # Sample gallery ensuring different image of same identity
+   def sample_gallery_by_identity(query_identity, query_key, gallery_size):
+       # Always include query identity with DIFFERENT image
+       # Exclude query image itself from selection
+       # Randomly sample remaining identities
+   ```
+
+### Common Debugging Patterns
+
+**Error**: "No gallery embeddings found for identities"
+- **Cause**: Mismatch between embedding keys and identity lookup
+- **Fix**: Verify embedding key format includes dataset prefix
+- **Debug**: Print sample keys from both embeddings and identity lookup
+
+**Error**: "Rank calculation returns all zeros"
+- **Cause**: Incorrect rank-to-accuracy conversion
+- **Fix**: Calculate per-query accuracy first, then average
+- **Pattern**: `accuracy = sum(rank == 1) / total_queries`
+
+**Error**: "Gallery doesn't contain query identity"
+- **Cause**: Random sampling without identity constraints
+- **Fix**: Always include query identity with different image
+- **Pattern**: Force inclusion of query identity in gallery construction
+
+### File Location Patterns
+
+**Embeddings**: `Embeddings/{dataset_name}/{privacy_mechanism}/`
+**Identity Mappings**: `src/dataset/celeba_identity_lookup.py`
+**Results**: `Results/Privacy/{evaluation_method}/`
+
+### Evaluation Workflow
+
+1. **Load embeddings** with correct key format
+2. **Initialize identity lookup** with matching dataset name
+3. **Map identities** to available images
+4. **Construct galleries** with identity constraints
+5. **Calculate ranks** per query (not aggregate)
+6. **Convert to accuracy** after rank calculation
+7. **Average across trials** for final results
