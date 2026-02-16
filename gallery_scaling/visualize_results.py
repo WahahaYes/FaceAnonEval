@@ -81,11 +81,11 @@ def extrapolate_trend(x_data, y_data, extrapolation_sizes):
 
 def create_comprehensive_figure(accuracy_df, rank_df, model_df):
     """Create comprehensive figure with accuracy and rank subplots."""
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 8))
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
     
     # Get unique epsilon values and colors
     epsilon_values = sorted(accuracy_df['epsilon'].unique())
-    colors = plt.cm.tab10(np.linspace(0, 1, len(epsilon_values)))
+    colors = plt.cm.tab10(np.linspace(0, 1, max(len(epsilon_values), 10)))
     
     # Maximum gallery size in data
     max_data_size = accuracy_df['gallery_size'].max()
@@ -110,42 +110,45 @@ def create_comprehensive_figure(accuracy_df, rank_df, model_df):
         
         # Get model parameters for this epsilon
         eps_model = model_df[model_df['epsilon'] == eps]
-        if len(eps_model) > 0:
-            # Extract power law parameters from model fitting
-            # We need to fit the power law ourselves since we don't have a, b in CSV
-            x_data = eps_acc_data['gallery_size'].values
-            y_data = eps_acc_data['accuracy'].values
+        
+        # Get data for plotting
+        x_data = eps_acc_data['gallery_size'].values
+        y_data = eps_acc_data['accuracy'].values
+        
+        if len(eps_model) == 0:
+            # Original images data - still plot without model fitting
+            pass
             
-            try:
-                popt, _ = curve_fit(
-                    lambda x, a, b: a * np.power(x, b),
-                    x_data, y_data,
-                    bounds=([0, -2], [1, 0])
-                )
-                a, b = popt
-                
-                # Plot accuracy data
-                ax1.plot(x_data, y_data, 'o-', 
-                        label=label, color=colors[i], markersize=4, linewidth=2)
-                
-                # Plot extrapolated accuracy (dotted) using better trend fitting
-                extrapolated_acc = extrapolate_trend(x_data, y_data, extrapolation_sizes_acc)
-                ax1.plot(extrapolation_sizes_acc, extrapolated_acc, '--',
-                        color=colors[i], alpha=0.7, linewidth=1.5)
-                
-                # Plot rank data
-                ax2.plot(x_data, eps_rank_data['avg_rank'], 'o-',
-                        label=label, color=colors[i], markersize=4, linewidth=2)
-                
-                # Extrapolate rank using same trend method
-                rank_y_data = eps_rank_data['avg_rank'].values
-                extrapolated_rank = extrapolate_trend(x_data, rank_y_data, extrapolation_sizes_rank)
-                ax2.plot(extrapolation_sizes_rank, extrapolated_rank, '--',
-                        color=colors[i], alpha=0.7, linewidth=1.5)
-                
-            except Exception as e:
-                print(f"Could not fit model for epsilon {eps}: {e}")
-                continue
+        try:
+            popt, _ = curve_fit(
+                lambda x, a, b: a * np.power(x, b),
+                x_data, y_data,
+                bounds=([0, -2], [1, 0])
+            )
+            a, b = popt
+            
+            # Plot accuracy data
+            ax1.plot(x_data, y_data, 'o-', 
+                    label=label, color=colors[i], markersize=4, linewidth=2)
+            
+            # Plot extrapolated accuracy (dotted) using better trend fitting
+            extrapolated_acc = extrapolate_trend(x_data, y_data, extrapolation_sizes_acc)
+            ax1.plot(extrapolation_sizes_acc, extrapolated_acc, '--',
+                    color=colors[i], alpha=0.7, linewidth=1.5)
+            
+            # Plot rank data
+            ax2.plot(x_data, eps_rank_data['avg_rank'], 'o-',
+                    label=label, color=colors[i], markersize=4, linewidth=2)
+            
+            # Extrapolate rank using same trend method
+            rank_y_data = eps_rank_data['avg_rank'].values
+            extrapolated_rank = extrapolate_trend(x_data, rank_y_data, extrapolation_sizes_rank)
+            ax2.plot(extrapolation_sizes_rank, extrapolated_rank, '--',
+                    color=colors[i], alpha=0.7, linewidth=1.5)
+            
+        except Exception as e:
+            print(f"Could not fit model for epsilon {eps}: {e}")
+            continue
     
     # Add baselines
     # Random chance baseline for accuracy: 1/N
