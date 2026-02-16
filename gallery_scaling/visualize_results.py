@@ -191,7 +191,6 @@ def create_comprehensive_figure(accuracy_df, rank_df, model_df):
     ax2.axvline(x=max_data_size, color='gray', linestyle='-', alpha=0.5, linewidth=1)
     
     # Set title
-    fig.suptitle('Gallery Scaling Analysis for dtheta_privacy (θ=0°)', fontsize=16, y=1.02)
     plt.tight_layout()
     plt.savefig(f'{OUTPUT_DIR}/figures/comprehensive_scaling.png', dpi=300, bbox_inches='tight')
     plt.show()
