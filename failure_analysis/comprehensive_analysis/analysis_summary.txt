@@ -1,7 +1,7 @@
 COMPREHENSIVE UTILITY DISTRIBUTION ANALYSIS
 ==================================================
 
-Analysis Date: 2026-02-16 18:21:59.418966
+Analysis Date: 2026-02-16 21:46:26.697079
 Full Dataset Size: 19962 images
 Failure Cases: 2840 images
 Failure Rate: 14.23%
@@ -17,7 +17,7 @@ Gender: *** (p=0.000000)
 CLUSTER CENTERS
 --------------------
 Cluster 0:
-  Age: 25.4
+  Age: 25.5
   SSIM: 1.000
   Emotion: 0
   Race: 0
@@ -31,14 +31,14 @@ Cluster 1:
   Gender: 0
 
 Cluster 2:
-  Age: 26.4
+  Age: 26.0
   SSIM: 1.000
-  Emotion: 4
-  Race: 0
+  Emotion: 0
+  Race: 3
   Gender: 0
 
 Cluster 3:
-  Age: 54.2
+  Age: 54.5
   SSIM: 1.000
   Emotion: 0
   Race: 0

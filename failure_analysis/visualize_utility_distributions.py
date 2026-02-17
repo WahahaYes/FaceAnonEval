@@ -13,10 +13,17 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import KMeans
 import sys
 
+# Set Times New Roman as default font
+plt.rcParams['font.family'] = 'Times New Roman'
+plt.rcParams['font.serif'] = 'Times New Roman'
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Global color palette
 colors = ['#2E86AB', '#A23B72', '#F18F01', '#C73E1D']
+
+# Configurable label offset for categorical variables
+LABEL_Y_OFFSET = 8
 
 def load_data():
     """Load demographic data and failure cases."""
@@ -162,192 +169,166 @@ def calculate_significance_tests(combined_df):
     return significance_results
 
 def create_comprehensive_plot(combined_df, significance_results, output_dir):
-    """Create comprehensive distribution comparison plot."""
+    """Create single plot with all demographics side-by-side."""
     
     # Create output directory
     os.makedirs(output_dir, exist_ok=True)
     
-    # Set up the figure
-    fig = plt.figure(figsize=(20, 16))
+    # Set up figure - single large plot with dual y-axes
+    fig, ax = plt.subplots(figsize=(14, 6))
+    ax2 = ax.twinx()  # Create second y-axis for percentages
     
-    # Define subplot layout
-    gs = fig.add_gridspec(4, 3, hspace=0.3, wspace=0.3)
+    # Colors
+    failure_color = '#e74c3c'
+    full_color = '#3498db'
     
-    # 1. Age Distribution
-    ax1 = fig.add_subplot(gs[0, 0])
-    for dataset_type, color in zip(['Failure Cases', 'Full Dataset (Sample)'], colors[:2]):
-        data = combined_df[combined_df['dataset_type'] == dataset_type]['age']
-        ax1.hist(data, bins=30, alpha=0.7, label=dataset_type, color=color, density=True)
+    # Define demographic sections and their x-positions
+    sections = {
+        'Age': {'start': 1, 'width': 2},
+        'Emotion': {'start': 4, 'width': 7},
+        'Race': {'start': 12, 'width': 6},
+        'Gender': {'start': 19, 'width': 2}
+    }
     
-    # Add significance marker
-    sig_text = "***" if significance_results['age']['p_value'] < 0.001 else \
-               "**" if significance_results['age']['p_value'] < 0.01 else \
-               "*" if significance_results['age']['p_value'] < 0.05 else ""
-    ax1.text(0.95, 0.95, sig_text, transform=ax1.transAxes, 
-             fontsize=16, fontweight='bold', ha='right')
+    # 1. Age Distribution - use actual age values on left axis
+    age_failure = combined_df[combined_df['dataset_type'] == 'Failure Cases']['age']
+    age_full = combined_df[combined_df['dataset_type'] == 'Full Dataset (Sample)']['age']
     
-    ax1.set_xlabel('Age')
-    ax1.set_ylabel('Density')
-    ax1.set_title('Age Distribution')
-    ax1.legend()
-    ax1.grid(True, alpha=0.3)
+    # Create histograms for age (using actual age values)
+    age_x_failure = np.random.normal(sections['Age']['start'] - 0.3, 0.15, len(age_failure))
+    age_x_full = np.random.normal(sections['Age']['start'] + 0.7, 0.15, len(age_full))
     
-    # 2. SSIM Distribution
-    ax2 = fig.add_subplot(gs[0, 1])
-    for dataset_type, color in zip(['Failure Cases', 'Full Dataset (Sample)'], colors[:2]):
-        data = combined_df[combined_df['dataset_type'] == dataset_type]['ssim']
-        ax2.hist(data, bins=30, alpha=0.7, label=dataset_type, color=color, density=True)
+    ax.scatter(age_x_failure, age_failure, alpha=0.3, s=10, color=failure_color, label='Failure Cases')
+    ax.scatter(age_x_full, age_full, alpha=0.3, s=10, color=full_color, label='Full Dataset')
     
-    # Add significance marker
-    sig_text = "***" if significance_results['ssim']['p_value'] < 0.001 else \
-               "**" if significance_results['ssim']['p_value'] < 0.01 else \
-               "*" if significance_results['ssim']['p_value'] < 0.05 else ""
-    ax2.text(0.95, 0.95, sig_text, transform=ax2.transAxes, 
-             fontsize=16, fontweight='bold', ha='right')
-    
-    ax2.set_xlabel('SSIM')
-    ax2.set_ylabel('Density')
-    ax2.set_title('Image Quality (SSIM)')
-    ax2.legend()
-    ax2.grid(True, alpha=0.3)
-    
-    # 3. Emotion Distribution
-    ax3 = fig.add_subplot(gs[0, 2])
+    # 2. Emotion Distribution - use right axis for percentages
     emotion_order = ['happy', 'neutral', 'sad', 'angry', 'surprise', 'fear', 'disgust']
+    emotion_failure = combined_df[combined_df['dataset_type'] == 'Failure Cases']['emotion']
+    emotion_full = combined_df[combined_df['dataset_type'] == 'Full Dataset (Sample)']['emotion']
     
-    for i, dataset_type in enumerate(['Failure Cases', 'Full Dataset (Sample)']):
-        data = combined_df[combined_df['dataset_type'] == dataset_type]['emotion']
-        counts = data.value_counts(normalize=True).reindex(emotion_order, fill_value=0) * 100
+    failure_counts = emotion_failure.value_counts(normalize=True).reindex(emotion_order, fill_value=0)
+    full_counts = emotion_full.value_counts(normalize=True).reindex(emotion_order, fill_value=0)
+    
+    for i, emotion in enumerate(emotion_order):
+        x_pos = sections['Emotion']['start'] + i
+        failure_pct = failure_counts[emotion]
+        full_pct = full_counts[emotion]
         
-        x = np.arange(len(emotion_order))
-        width = 0.35
-        
-        ax3.bar(x + i*width, counts, width, label=dataset_type, 
-                color=colors[i], alpha=0.7)
+        # Side-by-side bars on right axis (percentages)
+        ax2.bar(x_pos - 0.2, failure_pct, 0.35, color=failure_color, alpha=0.7)
+        ax2.bar(x_pos + 0.2, full_pct, 0.35, color=full_color, alpha=0.7)
     
-    # Add significance marker
-    sig_text = "***" if significance_results['emotion']['p_value'] < 0.001 else \
-               "**" if significance_results['emotion']['p_value'] < 0.01 else \
-               "*" if significance_results['emotion']['p_value'] < 0.05 else ""
-    ax3.text(0.95, 0.95, sig_text, transform=ax3.transAxes, 
-             fontsize=16, fontweight='bold', ha='right')
-    
-    ax3.set_xlabel('Emotion')
-    ax3.set_ylabel('Percentage')
-    ax3.set_title('Emotion Distribution')
-    ax3.set_xticks(x + width/2)
-    ax3.set_xticklabels(emotion_order, rotation=45)
-    ax3.legend()
-    ax3.grid(True, alpha=0.3)
-    
-    # 4. Race Distribution
-    ax4 = fig.add_subplot(gs[1, 0])
+    # 3. Race Distribution - use right axis for percentages
     race_order = ['white', 'black', 'asian', 'latino hispanic', 'indian', 'middle eastern']
+    race_display_labels = ['White', 'Black', 'Asian', 'Hispanic', 'Indian', 'Middle\nEastern']
+    race_failure = combined_df[combined_df['dataset_type'] == 'Failure Cases']['race']
+    race_full = combined_df[combined_df['dataset_type'] == 'Full Dataset (Sample)']['race']
     
-    for i, dataset_type in enumerate(['Failure Cases', 'Full Dataset (Sample)']):
-        data = combined_df[combined_df['dataset_type'] == dataset_type]['race']
-        counts = data.value_counts(normalize=True).reindex(race_order, fill_value=0) * 100
+    failure_counts = race_failure.value_counts(normalize=True).reindex(race_order, fill_value=0)
+    full_counts = race_full.value_counts(normalize=True).reindex(race_order, fill_value=0)
+    
+    for i, race in enumerate(race_order):
+        x_pos = sections['Race']['start'] + i
+        failure_pct = failure_counts[race]
+        full_pct = full_counts[race]
         
-        x = np.arange(len(race_order))
-        width = 0.35
-        
-        ax4.bar(x + i*width, counts, width, label=dataset_type, 
-                color=colors[i], alpha=0.7)
+        # Side-by-side bars on right axis (percentages)
+        ax2.bar(x_pos - 0.2, failure_pct, 0.35, color=failure_color, alpha=0.7)
+        ax2.bar(x_pos + 0.2, full_pct, 0.35, color=full_color, alpha=0.7)
     
-    # Add significance marker
-    sig_text = "***" if significance_results['race']['p_value'] < 0.001 else \
-               "**" if significance_results['race']['p_value'] < 0.01 else \
-               "*" if significance_results['race']['p_value'] < 0.05 else ""
-    ax4.text(0.95, 0.95, sig_text, transform=ax4.transAxes, 
-             fontsize=16, fontweight='bold', ha='right')
-    
-    ax4.set_xlabel('Race')
-    ax4.set_ylabel('Percentage')
-    ax4.set_title('Race Distribution')
-    ax4.set_xticks(x + width/2)
-    ax4.set_xticklabels(race_order, rotation=45)
-    ax4.legend()
-    ax4.grid(True, alpha=0.3)
-    
-    # 5. Gender Distribution
-    ax5 = fig.add_subplot(gs[1, 1])
+    # 4. Gender Distribution - use right axis for percentages
     gender_order = ['Woman', 'Man']
+    gender_failure = combined_df[combined_df['dataset_type'] == 'Failure Cases']['gender']
+    gender_full = combined_df[combined_df['dataset_type'] == 'Full Dataset (Sample)']['gender']
     
-    for i, dataset_type in enumerate(['Failure Cases', 'Full Dataset (Sample)']):
-        data = combined_df[combined_df['dataset_type'] == dataset_type]['gender']
-        counts = data.value_counts(normalize=True).reindex(gender_order, fill_value=0) * 100
+    failure_counts = gender_failure.value_counts(normalize=True).reindex(gender_order, fill_value=0)
+    full_counts = gender_full.value_counts(normalize=True).reindex(gender_order, fill_value=0)
+    
+    for i, gender in enumerate(gender_order):
+        x_pos = sections['Gender']['start'] + i
+        failure_pct = failure_counts[gender]
+        full_pct = full_counts[gender]
         
-        x = np.arange(len(gender_order))
-        width = 0.35
-        
-        ax5.bar(x + i*width, counts, width, label=dataset_type, 
-                color=colors[i], alpha=0.7)
+        # Side-by-side bars on right axis (percentages)
+        ax2.bar(x_pos - 0.2, failure_pct, 0.35, color=failure_color, alpha=0.7)
+        ax2.bar(x_pos + 0.2, full_pct, 0.35, color=full_color, alpha=0.7)
     
-    # Add significance marker
-    sig_text = "***" if significance_results['gender']['p_value'] < 0.001 else \
-               "**" if significance_results['gender']['p_value'] < 0.01 else \
-               "*" if significance_results['gender']['p_value'] < 0.05 else ""
-    ax5.text(0.95, 0.95, sig_text, transform=ax5.transAxes, 
-             fontsize=16, fontweight='bold', ha='right')
+    # Add vertical separators
+    separator_positions = [2.5, 10.5, 17.5]
+    for pos in separator_positions:
+        ax.axvline(x=pos, color='gray', linestyle='--', alpha=0.5)
     
-    ax5.set_xlabel('Gender')
-    ax5.set_ylabel('Percentage')
-    ax5.set_title('Gender Distribution')
-    ax5.set_xticks(x + width/2)
-    ax5.set_xticklabels(gender_order)
-    ax5.legend()
-    ax5.grid(True, alpha=0.3)
+    # Add x-axis labels for each category (configurable positioning)
+    # Age labels (no specific labels needed, just range)
+    ax.text(sections['Age']['start'], LABEL_Y_OFFSET + 3, 'Age Values', fontsize=9, ha='center', fontname='Times New Roman')
     
-    # 6. Cluster Analysis - 2D visualization
-    ax6 = fig.add_subplot(gs[1, 2])
-    failure_data = combined_df[combined_df['dataset_type'] == 'Failure Cases']
+    # Emotion labels (configurable position)
+    for i, emotion in enumerate(emotion_order):
+        x_pos = sections['Emotion']['start'] + i
+        failure_pct = failure_counts.get(emotion, 0)  # Use get() with default 0
+        full_pct = full_counts.get(emotion, 0)  # Use get() with default 0
+        max_pct = max(failure_pct, full_pct)
+        # Position label at configurable height above the maximum bar height
+        label_y = max_pct + LABEL_Y_OFFSET  # Use configurable offset
+        ax.text(x_pos, label_y, emotion, fontsize=10, ha='center', rotation=45, fontname='Times New Roman')
     
-    # Create scatter plot of age vs ssim colored by cluster
-    scatter = ax6.scatter(failure_data['age'], failure_data['ssim'], 
-                         c=failure_data['cluster'], cmap='viridis', alpha=0.6)
-    ax6.set_xlabel('Age')
-    ax6.set_ylabel('SSIM')
-    ax6.set_title('Failure Cases: Age vs SSIM (Colored by Cluster)')
-    plt.colorbar(scatter, ax=ax6)
-    ax6.grid(True, alpha=0.3)
+    # Race labels (configurable position)
+    for i, race_display in enumerate(race_display_labels):
+        x_pos = sections['Race']['start'] + i
+        race_actual = race_order[i]
+        failure_pct = failure_counts.get(race_actual, 0)  # Use get() with default 0
+        full_pct = full_counts.get(race_actual, 0)  # Use get() with default 0
+        max_pct = max(failure_pct, full_pct)
+        # Position label at configurable height above the maximum bar height
+        label_y = max_pct + LABEL_Y_OFFSET  # Use configurable offset
+        ax.text(x_pos, label_y, race_display, fontsize=10, ha='center', rotation=45, fontname='Times New Roman')
     
-    # 7-10. Cluster distributions for each metric
-    metrics = ['age', 'ssim', 'emotion_encoded', 'race_encoded']
-    metric_names = ['Age', 'SSIM', 'Emotion', 'Race']
+    # Gender labels (configurable position)
+    for i, gender in enumerate(gender_order):
+        x_pos = sections['Gender']['start'] + i
+        failure_pct = failure_counts.get(gender, 0)  # Use get() with default 0
+        full_pct = full_counts.get(gender, 0)  # Use get() with default 0
+        max_pct = max(failure_pct, full_pct)
+        # Position label at configurable height above the maximum bar height
+        label_y = max_pct + LABEL_Y_OFFSET  # Use configurable offset
+        ax.text(x_pos, label_y + 3, gender, fontsize=10, ha='center', fontname='Times New Roman')
     
-    for i, (metric, name) in enumerate(zip(metrics, metric_names)):
-        ax = fig.add_subplot(gs[2 + i//2, i%2])
-        
-        failure_data = combined_df[combined_df['dataset_type'] == 'Failure Cases']
-        
-        # Create box plots for each cluster
-        cluster_data = []
-        cluster_labels = []
-        
-        for cluster_id in sorted(failure_data['cluster'].unique()):
-            cluster_mask = failure_data['cluster'] == cluster_id
-            cluster_values = failure_data[cluster_mask][metric]
-            cluster_data.append(cluster_values)
-            cluster_labels.append(f'Cluster {cluster_id}')
-        
-        bp = ax.boxplot(cluster_data, labels=cluster_labels, patch_artist=True)
-        
-        # Color the boxes
-        for patch, color in zip(bp['boxes'], colors):
-            patch.set_facecolor(color)
-            patch.set_alpha(0.7)
-        
-        ax.set_xlabel('Cluster')
-        ax.set_ylabel(name)
-        ax.set_title(f'{name} Distribution by Cluster')
-        ax.grid(True, alpha=0.3)
+    # Set axis properties
+    ax.set_xlim(0, 21)
+    ax.set_ylim(15, 80)  # Age range for left axis
+    ax.set_xlabel('')  # Remove x-axis label
+    ax.set_ylabel('Age (Years)', fontsize=12, color='black', fontname='Times New Roman')
+    ax.set_xticks([])  # Remove x-axis ticks
     
-    # Overall title
-    fig.suptitle('Utility Metric Distributions: Full Dataset vs Failure Cases\n' + 
-                 '*** p<0.001, ** p<0.01, * p<0.05', 
-                 fontsize=16, fontweight='bold')
+    # Configure right axis for percentages
+    ax2.set_ylim(0, 1.0)  # Percentage range for right axis
+    ax2.set_ylabel('Proportion', fontsize=12, color='black', fontname='Times New Roman')
+    ax2.set_xticks([])  # Remove x-axis ticks for right axis too
     
-    # Save the plot
+    # Add y-axis ticks for both axes
+    ax.set_yticks([20, 30, 40, 50, 60, 70, 80])
+    ax.set_yticklabels(['20', '30', '40', '50', '60', '70', '80'], color='black', fontname='Times New Roman')
+    
+    ax2.set_yticks([0, 0.2, 0.4, 0.6, 0.8, 1.0])
+    ax2.set_yticklabels(['0.0', '0.2', '0.4', '0.6', '0.8', '1.0'], color='black', fontname='Times New Roman')
+    
+    # Move headers inside the plot at Y=70 level, properly centered
+    ax.text(sections['Age']['start'] + 0.2, 70, 'AGE', fontsize=12, fontweight='bold', ha='center', color='black', fontname='Times New Roman')
+    ax.text(sections['Emotion']['start'] + 3, 70, 'EMOTION', fontsize=12, fontweight='bold', ha='center', color='black', fontname='Times New Roman')
+    ax.text(sections['Race']['start'] + 2.5, 70, 'RACE', fontsize=12, fontweight='bold', ha='center', color='black', fontname='Times New Roman')
+    ax.text(sections['Gender']['start'] + 0.5, 70, 'GENDER', fontsize=12, fontweight='bold', ha='center', color='black', fontname='Times New Roman')
+    
+    # Add legend
+    legend_elements = [
+        plt.Rectangle((0, 0), 1, 1, fc=failure_color, alpha=0.7, label='Failure Cases'),
+        plt.Rectangle((0, 0), 1, 1, fc=full_color, alpha=0.7, label='Full Dataset')
+    ]
+    ax.legend(handles=legend_elements, loc='upper right', prop={'family': 'Times New Roman'})
+    
+    # Add grid
+    ax.grid(True, alpha=0.2, axis='y')
+    
+    # Save plot
     plt.savefig(f"{output_dir}/comprehensive_utility_distributions.png", 
                 dpi=300, bbox_inches='tight')
     plt.close()
@@ -382,10 +363,10 @@ def create_cluster_analysis_plot(combined_df, cluster_centers, output_dir):
                 ax.hist(data, bins=20, alpha=0.7, label=f'Cluster {cluster_id}', 
                        color=colors[cluster_id % len(colors)], density=True)
             
-            ax.set_xlabel(display_name)
-            ax.set_ylabel('Density')
-            ax.set_title(title)
-            ax.legend()
+            ax.set_xlabel(display_name, fontname='Times New Roman')
+            ax.set_ylabel('Density', fontname='Times New Roman')
+            ax.set_title(title, fontname='Times New Roman')
+            ax.legend(prop={'family': 'Times New Roman'})
             ax.grid(True, alpha=0.3)
             
         else:
@@ -406,12 +387,12 @@ def create_cluster_analysis_plot(combined_df, cluster_centers, output_dir):
                        label=f'Cluster {j}', color=colors[j % len(colors)], alpha=0.7)
                 bottom += counts
             
-            ax.set_xlabel(display_name)
-            ax.set_ylabel('Proportion')
-            ax.set_title(title)
+            ax.set_xlabel(display_name, fontname='Times New Roman')
+            ax.set_ylabel('Proportion', fontname='Times New Roman')
+            ax.set_title(title, fontname='Times New Roman')
             ax.set_xticks(range(len(categories)))
-            ax.set_xticklabels(categories, rotation=45)
-            ax.legend()
+            ax.set_xticklabels(categories, rotation=45, fontname='Times New Roman')
+            ax.legend(prop={'family': 'Times New Roman'})
             ax.grid(True, alpha=0.3)
     
     # Remove the last subplot (6th)
