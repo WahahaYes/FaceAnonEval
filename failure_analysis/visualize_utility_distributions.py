@@ -397,7 +397,7 @@ def create_comprehensive_plot(combined_df, significance_results, output_dir):
     # Add legend
     legend_elements = [
         plt.Rectangle((0, 0), 1, 1, fc=failure_color, alpha=0.7, label='Failure Cases'),
-        plt.Rectangle((0, 0), 1, 1, fc=full_color, alpha=0.7, label='Full Dataset')
+        plt.Rectangle((0, 0), 1, 1, fc=full_color, alpha=0.7, label='CelebA Distribution')
     ]
     ax.legend(handles=legend_elements, loc='upper right', prop={'family': 'Times New Roman'})
     
