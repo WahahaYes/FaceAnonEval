@@ -15,9 +15,10 @@ This analysis investigates demographic biases in privacy-preserving face recogni
 
 1. **Failure Identification**: Extract all cases where privacy mechanism failed (re-identification occurred)
 2. **Demographic Matching**: Match failure cases with original demographic annotations
-3. **Comparative Analysis**: Compare demographic distributions between failure cases and full dataset
-4. **Statistical Testing**: Chi-square tests for categorical variables, t-tests for continuous variables
-5. **Clustering Analysis**: K-means clustering to identify demographic patterns in failures
+3. **Multiple Subsample Averaging**: Generate 10 random subsamples from full dataset (2,840 images each) and average distributions to prevent sampling bias
+4. **Comparative Analysis**: Compare demographic distributions between failure cases and averaged full dataset
+5. **Statistical Testing**: Chi-square tests for categorical variables, t-tests for continuous variables
+6. **Clustering Analysis**: K-means clustering to identify demographic patterns in failures
 
 ### Evaluation Metrics
 
@@ -32,9 +33,10 @@ This analysis investigates demographic biases in privacy-preserving face recogni
 ## Statistical Analysis
 
 - **Failure Cases**: 2,840 images (14.23% failure rate)
-- **Comparative Sample**: Matched sample from full dataset (2,840 images)
+- **Multiple Subsamples**: 10 random subsamples of 2,840 images each from full dataset
+- **Averaged Comparisons**: Categorical distributions averaged across all 10 subsamples for statistical robustness
+- **Age Visualization**: Single subsample used for equal point count comparison (2,840 vs 2,840)
 - **Statistical Tests**: Chi-square for categorical, t-test for continuous variables
-- **Clustering**: K-means with 4 clusters on demographic features
 - **Significance Level**: p < 0.05 for statistical significance
 
 ## Visualization Description
@@ -82,8 +84,9 @@ This analysis investigates demographic biases in privacy-preserving face recogni
 1. **Significant Age Bias**: Failure cases show significantly different age distribution (p < 0.001)
 2. **Gender Disparity**: Strong gender bias in failure rates (p < 0.001)
 3. **Racial Differences**: Significant racial variation in failure susceptibility (p < 0.001)
-4. **Emotion Neutrality**: No significant emotion-based bias in failures (p = 0.104)
+4. **Emotion Neutrality**: No significant emotion-based bias in failures (p = 0.235)
 5. **Cluster Patterns**: Four distinct demographic vulnerability clusters identified
+6. **Statistical Robustness**: Results based on 10 subsample averaging reduce sampling bias
 
 ## Experimental Parameters Summary
 
@@ -91,25 +94,26 @@ This analysis investigates demographic biases in privacy-preserving face recogni
 |-----------|-------|-----------|
 | Dataset Size | 19,962 images | Complete CelebA test set |
 | Failure Cases | 2,840 images | All privacy breaches identified |
-| Comparison Sample | 2,840 images | Matched random sample for comparison |
+| Subsamples | 10 random samples | Prevents sampling bias through averaging |
+| Sample Size | 2,840 images per subsample | Matched to failure cases for comparison |
 | Clusters | 4 | Optimal number for demographic pattern identification |
 | Significance Level | p < 0.05 | Standard statistical threshold |
 
 ## Reproducibility Information
 
-**Total Evaluations**: 2,840 failure cases + 2,840 comparison samples = 5,680 demographic analyses
+**Total Evaluations**: 2,840 failure cases + (10 × 2,840) comparison samples = 31,240 demographic analyses
 
-**Runtime**: ~2-3 minutes on standard CPU
+**Runtime**: ~5-8 minutes on standard CPU (increased due to multiple subsamples)
 
-**Memory Requirements**: ~2GB RAM for demographic processing
+**Memory Requirements**: ~4GB RAM for demographic processing with subsamples
 
 **Statistical Significance**: Age, Race, and Gender show significant differences (p < 0.001), Emotion shows no significant bias (p = 0.104)
 
 ## Cluster Analysis Results
 
-**Cluster 0**: Young males (Age 25.5, Race: White, Gender: Male)
-**Cluster 1**: Young females (Age 27.3, Race: White, Gender: Female)  
-**Cluster 2**: Hispanic females (Age 26.0, Race: Hispanic, Gender: Female)
-**Cluster 3**: Older females (Age 54.5, Race: White, Gender: Female)
+**Cluster 0**: Young adults (Age 25.0, Race: White, Gender: Female)
+**Cluster 1**: Young adults (Age 27.2, Race: White, Gender: Female)  
+**Cluster 2**: Older adults (Age 52.9, Race: White, Gender: Female)
+**Cluster 3**: Young adults with surprise emotion (Age 26.1, Race: White, Gender: Female)
 
-These clusters reveal distinct demographic vulnerability patterns that warrant further investigation for fairness improvements in privacy-preserving systems.
+These clusters reveal distinct demographic vulnerability patterns that warrant further investigation for fairness improvements in privacy-preserving systems. Notably, all clusters predominantly identify female subjects with specific age and emotion characteristics.

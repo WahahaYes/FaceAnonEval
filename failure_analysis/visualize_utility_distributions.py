@@ -35,7 +35,6 @@ def load_data():
     
     full_df = pd.read_csv(demographics_path)
     full_df['clean_key'] = full_df['key'].str.replace('img_align_celeba___', '')
-    full_df['dataset_type'] = 'Full Dataset'
     
     # Load failure cases
     failure_path = "failure_analysis/failure_cases/failure_cases_metadata.csv"
@@ -44,7 +43,6 @@ def load_data():
     
     failure_df = pd.read_csv(failure_path)
     failure_df['clean_key'] = failure_df['query_key'].str.replace('img_align_celeba___', '')
-    failure_df['dataset_type'] = 'Failure Cases'
     
     # Merge failure cases with demographic data
     merged = failure_df.merge(full_df, on='clean_key', how='left', suffixes=('_failure', '_full'))
@@ -55,18 +53,22 @@ def load_data():
     failure_data.columns = ['clean_key', 'emotion', 'age', 'race', 'gender', 'ssim']
     failure_data['dataset_type'] = 'Failure Cases'
     
-    # Prepare full dataset data (sample to match size)
-    full_sample = full_df.sample(n=len(failure_df), random_state=42).copy()
-    full_sample['dataset_type'] = 'Full Dataset (Sample)'
-    full_data = full_sample[['clean_key', 'real_emotion', 'real_age', 'real_race', 'real_gender', 
-                           'ssim', 'dataset_type']].copy()
-    full_data.columns = ['clean_key', 'emotion', 'age', 'race', 'gender', 'ssim', 'dataset_type']
+    # Generate 10 random subsamples from full dataset
+    full_samples = []
+    for i in range(10):
+        sample = full_df.sample(n=len(failure_df), random_state=42+i).copy()
+        sample['dataset_type'] = f'Full Dataset (Sample {i+1})'
+        sample_data = sample[['clean_key', 'real_emotion', 'real_age', 'real_race', 'real_gender', 
+                               'ssim', 'dataset_type']].copy()
+        sample_data.columns = ['clean_key', 'emotion', 'age', 'race', 'gender', 'ssim', 'dataset_type']
+        full_samples.append(sample_data)
     
-    # Combine datasets
-    combined_df = pd.concat([failure_data, full_data], ignore_index=True)
+    # Combine all datasets
+    combined_df = pd.concat([failure_data] + full_samples, ignore_index=True)
     
     print(f"Loaded {len(full_df)} full dataset samples")
     print(f"Loaded {len(failure_df)} failure cases")
+    print(f"Generated 10 subsamples of {len(failure_df)} samples each")
     print(f"Combined dataset: {len(combined_df)} samples")
     
     return combined_df, full_df, failure_df
@@ -138,7 +140,7 @@ def calculate_significance_tests(combined_df):
     
     # Separate datasets
     failure_data = combined_df[combined_df['dataset_type'] == 'Failure Cases']
-    full_data = combined_df[combined_df['dataset_type'] == 'Full Dataset (Sample)']
+    full_data = combined_df[combined_df['dataset_type'].isin([f'Full Dataset (Sample {i})' for i in range(1, 11)])]
     
     # Age - t-test
     age_stat, age_p = stats.ttest_ind(failure_data['age'], full_data['age'])
@@ -168,11 +170,92 @@ def calculate_significance_tests(combined_df):
     
     return significance_results
 
+def calculate_averaged_distributions(combined_df):
+    """Calculate averaged distributions across 10 subsamples."""
+    
+    # Get failure cases data
+    failure_data = combined_df[combined_df['dataset_type'] == 'Failure Cases']
+    
+    # Get all subsample data using exact match
+    subsample_data = combined_df[combined_df['dataset_type'].isin([f'Full Dataset (Sample {i})' for i in range(1, 11)])]
+    
+    # Calculate averaged distributions for each categorical variable
+    averaged_results = {}
+    
+    # Age - just use failure cases vs averaged full dataset
+    averaged_results['age_failure'] = failure_data['age']
+    averaged_results['age_full'] = subsample_data['age']
+    
+    # Emotion distributions
+    emotion_order = ['happy', 'neutral', 'sad', 'angry', 'surprise', 'fear', 'disgust']
+    emotion_failure_dist = failure_data['emotion'].value_counts(normalize=True).reindex(emotion_order, fill_value=0)
+    
+    # Calculate average emotion distribution across subsamples
+    emotion_full_dists = []
+    for i in range(1, 11):
+        sample_data = subsample_data[subsample_data['dataset_type'] == f'Full Dataset (Sample {i})']
+        if len(sample_data) > 0:
+            dist = sample_data['emotion'].value_counts(normalize=True).reindex(emotion_order, fill_value=0)
+            emotion_full_dists.append(dist)
+    
+    if emotion_full_dists:
+        emotion_full_avg = pd.concat(emotion_full_dists, axis=1).mean(axis=1)
+    else:
+        emotion_full_avg = pd.Series([0]*len(emotion_order), index=emotion_order)
+    
+    averaged_results['emotion_failure'] = emotion_failure_dist
+    averaged_results['emotion_full'] = emotion_full_avg
+    
+    # Race distributions
+    race_order = ['white', 'black', 'asian', 'latino hispanic', 'indian', 'middle eastern']
+    race_failure_dist = failure_data['race'].value_counts(normalize=True).reindex(race_order, fill_value=0)
+    
+    # Calculate average race distribution across subsamples
+    race_full_dists = []
+    for i in range(1, 11):
+        sample_data = subsample_data[subsample_data['dataset_type'] == f'Full Dataset (Sample {i})']
+        if len(sample_data) > 0:
+            dist = sample_data['race'].value_counts(normalize=True).reindex(race_order, fill_value=0)
+            race_full_dists.append(dist)
+    
+    if race_full_dists:
+        race_full_avg = pd.concat(race_full_dists, axis=1).mean(axis=1)
+    else:
+        race_full_avg = pd.Series([0]*len(race_order), index=race_order)
+    
+    averaged_results['race_failure'] = race_failure_dist
+    averaged_results['race_full'] = race_full_avg
+    
+    # Gender distributions
+    gender_order = ['Woman', 'Man']
+    gender_failure_dist = failure_data['gender'].value_counts(normalize=True).reindex(gender_order, fill_value=0)
+    
+    # Calculate average gender distribution across subsamples
+    gender_full_dists = []
+    for i in range(1, 11):
+        sample_data = subsample_data[subsample_data['dataset_type'] == f'Full Dataset (Sample {i})']
+        if len(sample_data) > 0:
+            dist = sample_data['gender'].value_counts(normalize=True).reindex(gender_order, fill_value=0)
+            gender_full_dists.append(dist)
+    
+    if gender_full_dists:
+        gender_full_avg = pd.concat(gender_full_dists, axis=1).mean(axis=1)
+    else:
+        gender_full_avg = pd.Series([0]*len(gender_order), index=gender_order)
+    
+    averaged_results['gender_failure'] = gender_failure_dist
+    averaged_results['gender_full'] = gender_full_avg
+    
+    return averaged_results
+
 def create_comprehensive_plot(combined_df, significance_results, output_dir):
     """Create single plot with all demographics side-by-side."""
     
     # Create output directory
     os.makedirs(output_dir, exist_ok=True)
+    
+    # Calculate averaged distributions across subsamples
+    avg_dist = calculate_averaged_distributions(combined_df)
     
     # Set up figure - single large plot with dual y-axes
     fig, ax = plt.subplots(figsize=(14, 6))
@@ -191,8 +274,10 @@ def create_comprehensive_plot(combined_df, significance_results, output_dir):
     }
     
     # 1. Age Distribution - use actual age values on left axis
-    age_failure = combined_df[combined_df['dataset_type'] == 'Failure Cases']['age']
-    age_full = combined_df[combined_df['dataset_type'] == 'Full Dataset (Sample)']['age']
+    age_failure = avg_dist['age_failure']
+    # Use just one subsample for age visualization to have equal number of points
+    sample_1_data = combined_df[combined_df['dataset_type'] == 'Full Dataset (Sample 1)']
+    age_full = sample_1_data['age']
     
     # Create histograms for age (using actual age values)
     age_x_failure = np.random.normal(sections['Age']['start'] - 0.3, 0.15, len(age_failure))
@@ -203,11 +288,8 @@ def create_comprehensive_plot(combined_df, significance_results, output_dir):
     
     # 2. Emotion Distribution - use right axis for percentages
     emotion_order = ['happy', 'neutral', 'sad', 'angry', 'surprise', 'fear', 'disgust']
-    emotion_failure = combined_df[combined_df['dataset_type'] == 'Failure Cases']['emotion']
-    emotion_full = combined_df[combined_df['dataset_type'] == 'Full Dataset (Sample)']['emotion']
-    
-    failure_counts = emotion_failure.value_counts(normalize=True).reindex(emotion_order, fill_value=0)
-    full_counts = emotion_full.value_counts(normalize=True).reindex(emotion_order, fill_value=0)
+    failure_counts = avg_dist['emotion_failure']
+    full_counts = avg_dist['emotion_full']
     
     for i, emotion in enumerate(emotion_order):
         x_pos = sections['Emotion']['start'] + i
@@ -221,11 +303,8 @@ def create_comprehensive_plot(combined_df, significance_results, output_dir):
     # 3. Race Distribution - use right axis for percentages
     race_order = ['white', 'black', 'asian', 'latino hispanic', 'indian', 'middle eastern']
     race_display_labels = ['White', 'Black', 'Asian', 'Hispanic', 'Indian', 'Middle\nEastern']
-    race_failure = combined_df[combined_df['dataset_type'] == 'Failure Cases']['race']
-    race_full = combined_df[combined_df['dataset_type'] == 'Full Dataset (Sample)']['race']
-    
-    failure_counts = race_failure.value_counts(normalize=True).reindex(race_order, fill_value=0)
-    full_counts = race_full.value_counts(normalize=True).reindex(race_order, fill_value=0)
+    failure_counts = avg_dist['race_failure']
+    full_counts = avg_dist['race_full']
     
     for i, race in enumerate(race_order):
         x_pos = sections['Race']['start'] + i
@@ -238,11 +317,8 @@ def create_comprehensive_plot(combined_df, significance_results, output_dir):
     
     # 4. Gender Distribution - use right axis for percentages
     gender_order = ['Woman', 'Man']
-    gender_failure = combined_df[combined_df['dataset_type'] == 'Failure Cases']['gender']
-    gender_full = combined_df[combined_df['dataset_type'] == 'Full Dataset (Sample)']['gender']
-    
-    failure_counts = gender_failure.value_counts(normalize=True).reindex(gender_order, fill_value=0)
-    full_counts = gender_full.value_counts(normalize=True).reindex(gender_order, fill_value=0)
+    failure_counts = avg_dist['gender_failure']
+    full_counts = avg_dist['gender_full']
     
     for i, gender in enumerate(gender_order):
         x_pos = sections['Gender']['start'] + i
