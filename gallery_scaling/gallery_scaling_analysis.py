@@ -14,6 +14,7 @@ import pandas as pd
 from tqdm import tqdm
 import random
 from scipy.optimize import curve_fit
+from scipy.spatial.distance import cosine
 
 # Import existing pipeline components
 from src.argument_parser import CustomArgumentParser
@@ -26,64 +27,8 @@ os.makedirs(OUTPUT_DIR, exist_ok=True)
 os.makedirs(f'{OUTPUT_DIR}/results', exist_ok=True)
 
 def embedding_distance(embedding1, embedding2):
-    """Calculate Euclidean distance between two embeddings."""
-    return np.linalg.norm(embedding1 - embedding2)
-
-def sample_gallery_identities(identity_lookup, gallery_size, exclude_identity=None):
-    """
-    Sample a set of unique identities for the gallery.
-    
-    Args:
-        identity_lookup: Identity lookup object
-        gallery_size: Number of identities to sample
-        exclude_identity: Identity to exclude from sampling (for query)
-    
-    Returns:
-        set: Sampled identity labels
-    """
-    # Get all identities from the identity lookup
-    all_identities = set()
-    
-    # For CelebAIdentityLookup, we need to access the identity_dict
-    if hasattr(identity_lookup, 'identity_dict'):
-        all_identities = set(identity_lookup.identity_dict.values())
-    else:
-        # Fallback for other identity lookup types
-        # This would need to be implemented based on the specific lookup type
-        print(f"Debug: Unknown identity lookup type: {type(identity_lookup)}")
-        return set()
-    
-    # Remove query identity if specified
-    if exclude_identity:
-        all_identities.discard(exclude_identity)
-    
-    # Sample gallery_size identities
-    if len(all_identities) < gallery_size:
-        gallery_identities = all_identities
-    else:
-        gallery_identities = random.sample(list(all_identities), gallery_size)
-    
-    return set(gallery_identities)
-
-def get_available_identities(real_embeddings, identity_lookup):
-    """
-    Get the set of identities that actually exist in the embeddings.
-    
-    Args:
-        real_embeddings: Dictionary of real embeddings
-        identity_lookup: Identity lookup object
-    
-    Returns:
-        set: Available identity labels
-    """
-    available_identities = set()
-    for key in real_embeddings.keys():
-        try:
-            identity = identity_lookup.lookup(key)
-            available_identities.add(identity)
-        except Exception:
-            continue
-    return available_identities
+    """Calculate cosine distance between two embeddings."""
+    return cosine(embedding1, embedding2)
 
 def get_identity_to_images_mapping(real_embeddings, identity_lookup):
     """
@@ -107,116 +52,47 @@ def get_identity_to_images_mapping(real_embeddings, identity_lookup):
             continue
     return identity_to_images
 
-def sample_gallery_images_by_identity(identity_to_images, gallery_size, query_identity, query_image_key):
+def sample_gallery_all_images_by_individuals(identity_to_images, gallery_size, query_identity, query_image_key):
     """
-    Sample gallery images ensuring different images of same identity are included.
-    ALWAYS includes the query identity to ensure it can be found.
+    Sample gallery images from N individuals, including ALL images per individual.
     
     Args:
         identity_to_images: Mapping from identity to list of image keys
-        gallery_size: Number of identities to sample
-        query_identity: Identity of the query
-        query_image_key: Image key of the query (to exclude same image)
+        gallery_size: Number of individuals to sample (N)
+        query_identity: Identity of query
+        query_image_key: Image key of query (to exclude same image)
     
     Returns:
-        set: Sampled image keys
+        set: Sampled image keys (all images from N individuals)
     """
-    # Get all identities
+    # Get all identities (including query identity since we want it in gallery)
     available_identities = set(identity_to_images.keys())
     
-    # Always include query identity in the gallery
-    selected_identities = {query_identity}
+    # ALWAYS include query identity in the gallery
+    selected_individuals = {query_identity}
     
-    # Sample remaining identities
+    # Sample remaining individuals to reach gallery_size
     remaining_slots = gallery_size - 1
-    if remaining_slots > 0 and len(available_identities) > 1:
+    if remaining_slots > 0:
         available_identities.discard(query_identity)  # Remove for sampling others
         if len(available_identities) < remaining_slots:
-            selected_identities.update(available_identities)
+            selected_individuals.update(available_identities)
         else:
-            selected_identities.update(random.sample(list(available_identities), remaining_slots))
+            selected_individuals.update(random.sample(list(available_identities), remaining_slots))
     
-    # For each selected identity, sample a DIFFERENT image than the query
+    # Include ALL images from each selected individual
     gallery_images = set()
-    for identity in selected_identities:
+    for identity in selected_individuals:
         identity_images = identity_to_images[identity]
-        # Exclude the query image if it's the same identity
-        available_images = [img for img in identity_images if img != query_image_key]
-        if available_images:
-            gallery_images.add(random.choice(available_images))
-        else:
-            # If no different images available, use any image (including possibly the same)
-            gallery_images.add(random.choice(identity_images))
+        # Add all images from this individual
+        for img in identity_images:
+            # Only exclude if this is the exact query image
+            if img != query_image_key:
+                gallery_images.add(img)
     
     return gallery_images
 
-def find_rank_in_gallery(query_embedding, query_identity, real_embeddings, identity_lookup, gallery_identities):
-    """
-    Find the rank of query identity within a sampled gallery.
-    
-    Args:
-        query_embedding: Query embedding
-        query_identity: Query identity label
-        real_embeddings: Dictionary of real embeddings
-        identity_lookup: Identity lookup object
-        gallery_identities: Set of gallery identities
-    
-    Returns:
-        int: Rank position (0-based) or None if not found
-    """
-    # Filter embeddings to only include gallery identities
-    gallery_embeddings = []
-    gallery_keys = []
-    
-    for key, embedding in real_embeddings.items():
-        try:
-            identity = identity_lookup.lookup(key)
-            if identity in gallery_identities:
-                gallery_embeddings.append(embedding)
-                gallery_keys.append(key)
-        except Exception as e:
-            print(f"Debug: Error looking up identity for key {key}: {e}")
-            continue
-    
-    if not gallery_embeddings:
-        print(f"Debug: No gallery embeddings found for identities {gallery_identities}")
-        print(f"Debug: Query identity: {query_identity}")
-        print(f"Debug: Sample available identities: {list(gallery_identities)[:5]}")
-        return None
-    
-    # Calculate distances to all gallery embeddings
-    distances = []
-    for i, gallery_embedding in enumerate(gallery_embeddings):
-        try:
-            gallery_identity = identity_lookup.lookup(gallery_keys[i])
-            distance = embedding_distance(query_embedding, gallery_embedding)
-            distances.append((distance, gallery_identity, gallery_keys[i]))
-        except Exception as e:
-            print(f"Debug: Error calculating distance for gallery key {gallery_keys[i]}: {e}")
-            continue
-    
-    if not distances:
-        print("Debug: No distances calculated")
-        return None
-    
-    # Sort by distance
-    distances.sort(key=lambda x: x[0])
-    
-    # Check if query identity is in the gallery at all
-    query_in_gallery = any(identity == query_identity for _, identity, _ in distances)
-    if not query_in_gallery:
-        print(f"Debug: Query identity {query_identity} not found in gallery")
-        print(f"Debug: Gallery identities: {[identity for _, identity, _ in distances]}")
-        return None
-    
-    # Find rank of query identity
-    for rank, (_, identity, key) in enumerate(distances):
-        if identity == query_identity:
-            return rank
-    
-    return None  # Query identity not in gallery
-
-def gallery_scaling_evaluation(real_embeddings, anon_embeddings, identity_lookup, gallery_sizes, num_trials=5):
+def gallery_scaling_evaluation(real_embeddings, anon_embeddings, identity_lookup, gallery_sizes, num_trials=5, one_image_per_individual=False):
     """
     Perform gallery scaling evaluation.
     
@@ -226,6 +102,7 @@ def gallery_scaling_evaluation(real_embeddings, anon_embeddings, identity_lookup
         identity_lookup: Identity mapping
         gallery_sizes: List of gallery sizes to test
         num_trials: Number of random trials per gallery size
+        one_image_per_individual: If True, use only one image per individual in query set
     
     Returns:
         dict: Results for each gallery size
@@ -241,12 +118,29 @@ def gallery_scaling_evaluation(real_embeddings, anon_embeddings, identity_lookup
     
     results = {size: [] for size in gallery_sizes}
     
-    # Get all query paths
-    query_paths = list(anon_embeddings.keys())
+    # Get all query paths, optionally limiting to one per individual
+    all_query_paths = list(anon_embeddings.keys())
+    
+    if one_image_per_individual:
+        # Select one image per individual for faster testing
+        seen_identities = set()
+        query_paths = []
+        for query_path in all_query_paths:
+            try:
+                identity = identity_lookup.lookup(query_path)
+                if identity not in seen_identities:
+                    seen_identities.add(identity)
+                    query_paths.append(query_path)
+            except Exception:
+                continue
+        print(f"Debug: Limited to one image per individual: {len(query_paths)} queries from {len(all_query_paths)} total")
+    else:
+        query_paths = all_query_paths
+    
     print(f"Debug: total query paths: {len(query_paths)}")
     
-    # Process all queries (no limit for full analysis)
-    print(f"Debug: Processing all {len(query_paths)} queries for full analysis")
+    # Process queries (limited if one_image_per_individual is True)
+    print(f"Debug: Processing {len(query_paths)} queries for {'fast' if one_image_per_individual else 'full'} analysis")
     
     for gallery_size in tqdm(gallery_sizes, desc="Gallery sizes"):
         for trial in range(num_trials):
@@ -259,15 +153,16 @@ def gallery_scaling_evaluation(real_embeddings, anon_embeddings, identity_lookup
                     query_embedding = anon_embeddings[query_path]
                     query_identity = identity_lookup.lookup(query_path)
                     
-                    # Sample gallery images ensuring different images of same identity
-                    gallery_image_keys = sample_gallery_images_by_identity(
+                    # Sample gallery images from N individuals (including all their images)
+                    gallery_image_keys = sample_gallery_all_images_by_individuals(
                         identity_to_images, gallery_size, query_identity, query_path
                     )
+                    
                     
                     # Find rank within this gallery
                     rank = find_rank_in_gallery_by_images(
                         query_embedding, query_identity, real_embeddings, 
-                        identity_lookup, gallery_image_keys
+                        identity_lookup, gallery_image_keys, query_path
                     )
                     
                     # Convert rank to accuracy for THIS query (rank == 0 means perfect match)
@@ -279,13 +174,30 @@ def gallery_scaling_evaluation(real_embeddings, anon_embeddings, identity_lookup
                     print(f"Debug: Exception for query {query_path}: {e}")
                     continue
             
-            # Store both average accuracy and average rank for this trial
+            # Store detailed rank data for this trial
             if trial_accuracies:
                 avg_accuracy = np.mean(trial_accuracies)
-                avg_rank = np.mean(trial_ranks)
+                
+                # Filter out None values from ranks
+                valid_ranks = [rank for rank in trial_ranks if rank is not None]
+                if valid_ranks:
+                    avg_rank = np.mean(valid_ranks)
+                else:
+                    avg_rank = float('inf')  # No matches found
+                
+                # Compute rank-k accuracies for different k values
+                rank_1_acc = np.mean([1.0 if rank == 0 else 0.0 for rank in valid_ranks])
+                rank_5_acc = np.mean([1.0 if rank <= 4 else 0.0 for rank in valid_ranks])
+                rank_10_acc = np.mean([1.0 if rank <= 9 else 0.0 for rank in valid_ranks])
+                rank_50_acc = np.mean([1.0 if rank <= 49 else 0.0 for rank in valid_ranks])
+                
                 results[gallery_size].append({
                     'accuracy': avg_accuracy,
                     'avg_rank': avg_rank,
+                    'rank_1_accuracy': rank_1_acc,
+                    'rank_5_accuracy': rank_5_acc,
+                    'rank_10_accuracy': rank_10_acc,
+                    'rank_50_accuracy': rank_50_acc,
                     'num_queries': len(trial_accuracies)
                 })
                 print(f"Debug: Gallery size {gallery_size}, trial {trial}, avg_accuracy: {avg_accuracy:.3f}, avg_rank: {avg_rank:.3f}, queries: {len(trial_accuracies)}")
@@ -294,9 +206,10 @@ def gallery_scaling_evaluation(real_embeddings, anon_embeddings, identity_lookup
     
     return results
 
-def find_rank_in_gallery_by_images(query_embedding, query_identity, real_embeddings, identity_lookup, gallery_image_keys):
+def find_rank_in_gallery_by_images(query_embedding, query_identity, real_embeddings, identity_lookup, gallery_image_keys, query_key):
     """
     Find the rank of query identity within a sampled gallery using image keys.
+    Excludes the exact query image from the gallery.
     
     Args:
         query_embedding: Query embedding
@@ -304,16 +217,17 @@ def find_rank_in_gallery_by_images(query_embedding, query_identity, real_embeddi
         real_embeddings: Dictionary of real embeddings
         identity_lookup: Identity lookup object
         gallery_image_keys: Set of gallery image keys
+        query_key: The exact query image key to exclude
     
     Returns:
         int: Rank position (0-based) or None if not found
     """
-    # Filter embeddings to only include gallery image keys
+    # Filter embeddings to only include gallery image keys, excluding exact query
     gallery_embeddings = []
     gallery_keys = []
     
     for key in gallery_image_keys:
-        if key in real_embeddings:
+        if key in real_embeddings and key != query_key:  # Exclude exact query image
             gallery_embeddings.append(real_embeddings[key])
             gallery_keys.append(key)
     
@@ -346,33 +260,12 @@ def find_rank_in_gallery_by_images(query_embedding, query_identity, real_embeddi
     
     return None  # Query identity not in gallery
 
-def sample_gallery_identities_from_available(available_identities, gallery_size, exclude_identity=None):
-    """
-    Sample a set of unique identities from the available pool.
-    NOTE: We DON'T exclude the query identity - we want to see where it ranks!
-    
-    Args:
-        available_identities: Set of identities that exist in embeddings
-        gallery_size: Number of identities to sample
-        exclude_identity: Identity to exclude from sampling (for query) - NOT USED
-    
-    Returns:
-        set: Sampled identity labels
-    """
-    # Sample gallery_size identities from available pool
-    if len(available_identities) < gallery_size:
-        gallery_identities = available_identities
-    else:
-        gallery_identities = random.sample(list(available_identities), gallery_size)
-    
-    return set(gallery_identities)
-
 def calculate_accuracy_from_ranks(results, gallery_sizes):
     """
     Convert results to accuracy metrics.
     
     Args:
-        results: Dictionary of results per gallery size (contains accuracy, avg_rank, num_queries)
+        results: Dictionary of results per gallery size (contains accuracy, avg_rank, rank_k accuracies, num_queries)
         gallery_sizes: List of gallery sizes
     
     Returns:
@@ -380,25 +273,41 @@ def calculate_accuracy_from_ranks(results, gallery_sizes):
     """
     final_accuracy_results = {}
     final_rank_results = {}
+    final_rank_1_results = {}
+    final_rank_5_results = {}
+    final_rank_10_results = {}
+    final_rank_50_results = {}
     
     for size in gallery_sizes:
         trial_results = results.get(size, [])
         if not trial_results:
             final_accuracy_results[size] = 0.0
             final_rank_results[size] = 0.0
+            final_rank_1_results[size] = 0.0
+            final_rank_5_results[size] = 0.0
+            final_rank_10_results[size] = 0.0
+            final_rank_50_results[size] = 0.0
             continue
         
-        # Extract accuracies and ranks from trial results
+        # Extract all metrics from trial results
         accuracies = [trial['accuracy'] for trial in trial_results]
-        ranks = [trial['avg_rank'] for trial in trial_results]
+        avg_ranks = [trial['avg_rank'] for trial in trial_results]
+        rank_1_accs = [trial['rank_1_accuracy'] for trial in trial_results]
+        rank_5_accs = [trial['rank_5_accuracy'] for trial in trial_results]
+        rank_10_accs = [trial['rank_10_accuracy'] for trial in trial_results]
+        rank_50_accs = [trial['rank_50_accuracy'] for trial in trial_results]
         
-        # Average the accuracies and ranks across trials
-        avg_accuracy = np.mean(accuracies)
-        avg_rank = np.mean(ranks)
-        final_accuracy_results[size] = avg_accuracy
-        final_rank_results[size] = avg_rank
+        # Average the metrics across trials
+        final_accuracy_results[size] = np.mean(accuracies)
+        final_rank_results[size] = np.mean(avg_ranks)
+        final_rank_1_results[size] = np.mean(rank_1_accs)
+        final_rank_5_results[size] = np.mean(rank_5_accs)
+        final_rank_10_results[size] = np.mean(rank_10_accs)
+        final_rank_50_results[size] = np.mean(rank_50_accs)
     
-    return final_accuracy_results, final_rank_results
+    return (final_accuracy_results, final_rank_results, 
+            final_rank_1_results, final_rank_5_results, 
+            final_rank_10_results, final_rank_50_results)
 
 def fit_scaling_models(gallery_sizes, accuracies):
     """
@@ -473,19 +382,43 @@ def save_results_to_csv(all_results, gallery_sizes):
     accuracy_df = pd.DataFrame(accuracy_data)
     accuracy_df.to_csv(f'{OUTPUT_DIR}/results/accuracy_results.csv', index=False)
     
-    # Save rank results
+    # Save rank results with detailed rank-k accuracies
     rank_data = []
     for eps in sorted(all_results.keys()):
         for size in gallery_sizes:
-            rank = all_results[eps]['rank_results'].get(size, 0.0)
+            avg_rank = all_results[eps]['avg_rank'].get(size, 0.0)
+            rank_1_acc = all_results[eps]['rank_1_accuracy'].get(size, 0.0)
+            rank_5_acc = all_results[eps]['rank_5_accuracy'].get(size, 0.0)
+            rank_10_acc = all_results[eps]['rank_10_accuracy'].get(size, 0.0)
+            rank_50_acc = all_results[eps]['rank_50_accuracy'].get(size, 0.0)
+            
             rank_data.append({
                 'epsilon': eps,
                 'gallery_size': size,
-                'avg_rank': rank
+                'avg_rank': avg_rank,
+                'rank_1_accuracy': rank_1_acc,
+                'rank_5_accuracy': rank_5_acc,
+                'rank_10_accuracy': rank_10_acc,
+                'rank_50_accuracy': rank_50_acc
             })
     
     rank_df = pd.DataFrame(rank_data)
     rank_df.to_csv(f'{OUTPUT_DIR}/results/rank_results.csv', index=False)
+    
+    # Also save separate rank-k accuracy files for easier access
+    for k, metric_name in [(1, 'rank_1'), (5, 'rank_5'), (10, 'rank_10'), (50, 'rank_50')]:
+        rank_k_data = []
+        for eps in sorted(all_results.keys()):
+            for size in gallery_sizes:
+                acc = all_results[eps][f'{metric_name}_accuracy'].get(size, 0.0)
+                rank_k_data.append({
+                    'epsilon': eps,
+                    'gallery_size': size,
+                    'accuracy': acc
+                })
+        
+        rank_k_df = pd.DataFrame(rank_k_data)
+        rank_k_df.to_csv(f'{OUTPUT_DIR}/results/rank_{k}_accuracy.csv', index=False)
     
     print(f"Results saved to {OUTPUT_DIR}/results/")
     model_data = []
@@ -613,7 +546,8 @@ def main():
     theta = 0.0
     epsilon_values = [-1.0, 1.0, 10.0, 50.0, 100.0, 200.0]  # Match paper values
     gallery_sizes = [2, 5, 10, 20, 50, 100, 200, 500, 1000]
-    num_trials = 10  # Increased for more robust results
+    num_trials = 1  # Reduced for faster testing
+    one_image_per_individual = False  # Enable fast testing mode
     
     # Use existing argument parser to get dataset objects
     parser = CustomArgumentParser(mode="evaluate")
@@ -655,11 +589,11 @@ def main():
         # Run gallery scaling evaluation
         results = gallery_scaling_evaluation(
             evaluator.real_embeddings, evaluator.anon_embeddings, 
-            dataset_identity_lookup, gallery_sizes, num_trials
+            dataset_identity_lookup, gallery_sizes, num_trials, one_image_per_individual
         )
         
         # Convert to accuracy metrics
-        accuracy_results, rank_results = calculate_accuracy_from_ranks(results, gallery_sizes)
+        accuracy_results, rank_results, rank_1_results, rank_5_results, rank_10_results, rank_50_results = calculate_accuracy_from_ranks(results, gallery_sizes)
         
         # Fit scaling models
         models = fit_scaling_models(
@@ -669,7 +603,11 @@ def main():
         
         all_results[eps] = {
             'accuracy': accuracy_results,
-            'rank_results': rank_results,  # Store both!
+            'avg_rank': rank_results,
+            'rank_1_accuracy': rank_1_results,
+            'rank_5_accuracy': rank_5_results,
+            'rank_10_accuracy': rank_10_results,
+            'rank_50_accuracy': rank_50_results,
             'models': models,
         }
     

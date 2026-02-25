@@ -198,6 +198,118 @@ def create_comprehensive_figure(accuracy_df, rank_df, model_df):
     plt.savefig(f'{OUTPUT_DIR}/figures/comprehensive_scaling.png', dpi=300, bbox_inches='tight')
     plt.show()
 
+def create_alternate_figure(accuracy_df, rank_df, model_df):
+    """Create alternate figure with rank-1 accuracy and rank-50 accuracy subplots."""
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
+    
+    # Get unique epsilon values and colors
+    epsilon_values = sorted(accuracy_df['epsilon'].unique())
+    colors = plt.cm.tab10(np.linspace(0, 1, max(len(epsilon_values), 10)))
+    
+    # Maximum gallery size in data
+    max_data_size = accuracy_df['gallery_size'].max()
+    
+    # Extrapolation range
+    extrapolation_sizes_acc = np.logspace(np.log10(max_data_size), 6, 100)
+    extrapolation_sizes_rank50 = np.logspace(np.log10(max_data_size), 6, 100)
+    
+    for i, eps in enumerate(epsilon_values):
+        # Format legend label
+        if eps == -1.0:
+            label = 'Original Images'
+        elif eps == 0.0:
+            continue  # Skip eps 0 condition
+        else:
+            label = f'ε={int(eps)}' if eps == int(eps) else f'ε={eps}'
+        
+        # Get data for this epsilon
+        eps_acc_data = accuracy_df[accuracy_df['epsilon'] == eps]
+        eps_rank_data = rank_df[rank_df['epsilon'] == eps]
+        
+        # Left subplot: Rank-1 accuracy (same as original)
+        x_data = eps_acc_data['gallery_size'].values
+        y_data = eps_acc_data['accuracy'].values
+        
+        ax1.plot(x_data, y_data, 'o-', 
+                label=label, color=colors[i], markersize=4, linewidth=2)
+        
+        # Plot extrapolated rank-1 accuracy
+        extrapolated_acc = extrapolate_trend(x_data, y_data, extrapolation_sizes_acc)
+        ax1.plot(extrapolation_sizes_acc, extrapolated_acc, '--',
+                color=colors[i], alpha=0.7, linewidth=1.5)
+        
+        # Right subplot: Real rank-50 accuracy from data
+        if 'rank_50_accuracy' in eps_rank_data.columns:
+            rank50_data = eps_rank_data[['gallery_size', 'rank_50_accuracy']].dropna()
+            x_data_rank50 = rank50_data['gallery_size'].values
+            rank50_acc = rank50_data['rank_50_accuracy'].values
+            
+            # Only plot rank-50 accuracy for gallery sizes >= 51
+            valid_mask = x_data_rank50 >= 51
+            x_data_rank50_valid = x_data_rank50[valid_mask]
+            rank50_acc_valid = rank50_acc[valid_mask]
+            
+            ax2.plot(x_data_rank50_valid, rank50_acc_valid, 'o-',
+                    label=label, color=colors[i], markersize=4, linewidth=2)
+            
+            # Plot extrapolated rank-50 accuracy using same trend
+            if len(x_data_rank50_valid) > 0:
+                extrapolated_rank50 = extrapolate_trend(x_data_rank50_valid, rank50_acc_valid, extrapolation_sizes_rank50)
+                ax2.plot(extrapolation_sizes_rank50, extrapolated_rank50, '--',
+                        color=colors[i], alpha=0.7, linewidth=1.5)
+    
+    # Add baselines
+    # Random chance baseline for rank-1 accuracy: 1/N
+    baseline_sizes_acc = np.logspace(0, 6, 100)
+    baseline_accuracy = 1.0 / baseline_sizes_acc
+    ax1.plot(baseline_sizes_acc, baseline_accuracy, 'k-', 
+             label='Random Chance (1/N)', linewidth=2, alpha=0.8)
+    
+    # Random chance baseline for rank-50 accuracy: min(50/N, 1.0)
+    baseline_rank50 = np.minimum(50.0 / baseline_sizes_acc, 1.0)
+    ax2.plot(baseline_sizes_acc, baseline_rank50, 'k-', 
+             label='Random Chance (50/N)', linewidth=2, alpha=0.8)
+    
+    # Configure left subplot (Rank-1 Accuracy)
+    ax1.set_xscale('log')
+    ax1.set_yscale('linear')
+    ax1.set_xlabel('Gallery Size', fontsize=14)
+    ax1.set_ylabel('Rank-1 Accuracy', fontsize=14)
+    ax1.set_title('Rank-1 Re-identification Accuracy', fontsize=16)
+    ax1.grid(True, alpha=0.3)
+    ax1.set_xlim(1, 10**6)
+    ax1.set_ylim(0, 1.0)
+    
+    # Configure right subplot (Rank-50 Accuracy)
+    ax2.set_xscale('log')
+    ax2.set_yscale('linear')
+    ax2.set_xlabel('Gallery Size', fontsize=14)
+    ax2.set_ylabel('Rank-50 Accuracy', fontsize=14)
+    ax2.set_title('Rank-50 Re-identification Accuracy', fontsize=16)
+    ax2.grid(True, alpha=0.3)
+    ax2.set_xlim(1, 10**6)
+    ax2.set_ylim(0, 1.0)
+    
+    # Add vertical line to indicate where rank-50 becomes meaningful (gallery size = 50)
+    ax2.axvline(x=50, color='red', linestyle='--', alpha=0.5, linewidth=1)
+    ax2.text(50, 0.95, 'Rank-50\nthreshold', rotation=90, 
+             verticalalignment='top', horizontalalignment='right', 
+             color='red', fontsize=10, alpha=0.7)
+    
+    # Increase tick label sizes
+    for ax in [ax1, ax2]:
+        ax.tick_params(axis='both', which='major', labelsize=12)
+        ax.tick_params(axis='both', which='minor', labelsize=10)
+    
+    # Add legend
+    ax1.legend(loc='best', fontsize=12, frameon=True, fancybox=True, shadow=True)
+    ax2.legend(loc='best', fontsize=12, frameon=True, fancybox=True, shadow=True)
+    
+    plt.tight_layout()
+    plt.savefig(f'{OUTPUT_DIR}/figures/gallery_scaling_rank50_accuracy.png', dpi=300, bbox_inches='tight')
+    plt.close()
+    return fig
+
 def create_half_life_analysis(accuracy_df):
     """Analyze and visualize half-life points."""
     half_life_data = []
