@@ -166,7 +166,7 @@ def create_comprehensive_figure(accuracy_df, rank_df, model_df):
     # Configure accuracy subplot
     ax1.set_xlabel('Gallery Size (Number of Identities)', fontsize=14)
     ax1.set_ylabel('Rank-1 Accuracy', fontsize=14)
-    ax1.set_title('Re-identification Accuracy vs Gallery Size', fontsize=16)
+    ax1.set_title('(a) Re-identification Accuracy', fontsize=16)
     ax1.set_xscale('log')
     ax1.set_yscale('linear')  # Linear Y-axis
     ax1.grid(True, alpha=0.3)
@@ -181,7 +181,7 @@ def create_comprehensive_figure(accuracy_df, rank_df, model_df):
     # Configure rank subplot
     ax2.set_xlabel('Gallery Size (Number of Identities)', fontsize=14)
     ax2.set_ylabel('Average Rank', fontsize=14)
-    ax2.set_title('Re-identification Rank vs Gallery Size', fontsize=16)
+    ax2.set_title('(b) Re-identification Rank', fontsize=16)
     ax2.set_xscale('log')
     ax2.set_yscale('linear')  # Linear Y-axis
     ax2.grid(True, alpha=0.3)
